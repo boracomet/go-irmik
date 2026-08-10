@@ -7,8 +7,8 @@ Irmik keeps **`irmik.New` and the root `irmik` package thin**. Extra capabilitie
 | Import style | When to use | Linked into binary? |
 |--------------|-------------|---------------------|
 | Nothing | Core SSR/SSG/ISR app | Only packages you already use |
-| Explicit `Open` / `New` | `storage.OpenLocal`, `mail.NewSMTP`, `queue.NewMemory` | Yes, that package + its deps |
-| Blank-import register | `import _ "…/cache/redisx"` | Yes (registers driver) |
+| Explicit `Open` / `New` | `storage.OpenLocal`, `mail.NewSMTP`, `queue.NewMemory`, `asynqx.Open` | Yes, that package + its deps |
+| Blank-import register | `import _ "…/cache/redisx"`, `import _ "…/queue/asynqx"` | Yes (registers driver) |
 | Heavy subpackage | `storage/s3x`, `observe/otelx`, `compress/brotlix`, `grpcx` | Only if you import them |
 
 **Rule:** never hard-import heavy deps into root `irmik` or into always-on `irmik.New`. Prefer small APIs — no DI container.
@@ -53,14 +53,15 @@ Irmik keeps **`irmik.New` and the root `irmik` package thin**. Extra capabilitie
 | `irmik/storage/s3x` | Stable | `s3x.Open(ctx, s3x.Options{Bucket: "…"})` | AWS SDK v2 |
 | `irmik/forms` | Stable | `forms.BindForm` + `forms.CSRFInput(token)` | validate only (no session) |
 | `irmik/mail` | Stable | `mail.NewSMTP(cfg)` / `mail.Memory` | `net/smtp` |
-| `irmik/queue` | Stable | `queue.NewMemory(64)` + `Run` | none (Redis/asynq later) |
+| `irmik/queue` | Stable | `queue.NewMemory(64)` + `Run` | none |
+| `irmik/queue/asynqx` | Stable | blank-import or `asynqx.Open(opts)` | hibiken/asynq + Redis |
 | `irmik/scheduler` | Stable* | `scheduler.New()` + `Every` / 5-field `Cron` | none (*cron subset) |
-| `irmik/openapi` | Experimental | `openapi.New(title, ver).Mount(r, "/openapi.json")` | none |
+| `irmik/openapi` | Experimental | `openapi.New(…).Mount` + `MountSwagger` | none (Swagger UI via CDN) |
 | `irmik/observe` | Stable | `observe.NewLogger(opts)` | `log/slog` |
 | `irmik/observe/otelx` | Experimental | `otelx.Setup(ctx, opts)` | OpenTelemetry SDK |
 | `irmik/compress` | Stable | `r.Use(compress.Gzip())` | stdlib gzip |
 | `irmik/compress/brotlix` | Stable | `r.Use(brotlix.Brotli())` | andybalholm/brotli |
-| `irmik/imagex` | Stable* | `imagex.Transform(r, opts)` | x/image (*WebP encode N/A) |
+| `irmik/imagex` | Stable | `imagex.Transform(r, opts)` incl. WebP encode | x/image + deepteams/webp (pure Go) |
 | `irmik/secrets` | Stable | `secrets.Env{Prefix:"IRMIK_"}` | none |
 | `irmik/grpcx` | Stable | `grpcx.NewServer(opts).ListenAndServe(ctx)` | google.golang.org/grpc |
 | `irmik/proxy` | Stable | `proxy.Handler(proxy.Options{Target: "…"})` | `httputil` |
@@ -128,6 +129,33 @@ _ = sched.Add(scheduler.Job{Name: "cleanup", Every: time.Hour, Fn: cleanup})
 go sched.Run(ctx)
 ```
 
+### Asynq / Redis queue (opt-in)
+
+```go
+import (
+    "github.com/boracomet/go-irmik/irmik/queue"
+    _ "github.com/boracomet/go-irmik/irmik/queue/asynqx" // registers "asynq"
+)
+
+q, err := queue.New(queue.Options{
+    Driver: "asynq", RedisURL: "redis://localhost:6379/0", Concurrency: 10,
+})
+// or: q, err := asynqx.Open(asynqx.Options{RedisURL: "redis://localhost:6379/0"})
+go q.Run(ctx, handler)
+_ = q.Enqueue(ctx, queue.Job{Name: "email.welcome", Payload: payload})
+```
+
+### OpenAPI + Swagger UI (CDN)
+
+```go
+doc := openapi.New("API", "1.0.0")
+doc.Add("/users", "GET", openapi.Operation{Summary: "List users"})
+doc.Mount(r, "/openapi.json")
+openapi.MountSwagger(r, "/docs", "/openapi.json") // loads swagger-ui from unpkg CDN
+```
+
+Offline alternative: vendor [swagger-ui-dist](https://www.npmjs.com/package/swagger-ui-dist) under `public/` and point it at the same `/openapi.json`.
+
 ### Observe + optional OTel
 
 ```go
@@ -149,11 +177,16 @@ srv := grpcx.NewServer(grpcx.ServerOptions{
 go srv.ListenAndServe(ctx)
 ```
 
+### Image transform (incl. WebP encode)
+
+```go
+out, ct, err := imagex.Transform(r, imagex.Options{
+    MaxWidth: 800, Format: imagex.WEBP, Quality: 80,
+})
+```
+
 ## What is *not* in the catalog yet
 
-- Redis/asynq queue backend (interface ready in `irmik/queue`)
 - Full cron syntax / timezone-aware scheduler
-- WebP encode without CGO
-- Swagger UI embedding (serve your own UI against `/openapi.json`)
 
 See also [architecture.md](architecture.md), [auth.md](auth.md), [database.md](database.md), [realtime.md](realtime.md).

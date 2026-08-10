@@ -1,7 +1,8 @@
 // Package imagex provides image decode/resize/encode helpers.
 //
-// Supports JPEG/PNG/GIF encode via the standard library, and WebP decode via
-// golang.org/x/image/webp. WebP encode is not available without CGO; use JPEG/PNG.
+// Supports JPEG/PNG encode via the standard library, WebP decode via
+// golang.org/x/image/webp, and WebP encode via the pure-Go
+// github.com/deepteams/webp library (no CGO).
 //
 // Opt-in: import only when processing images.
 package imagex
@@ -15,6 +16,7 @@ import (
 	"image/png"
 	"io"
 
+	"github.com/deepteams/webp"
 	"golang.org/x/image/draw"
 	_ "golang.org/x/image/webp"
 )
@@ -25,6 +27,8 @@ type Format string
 const (
 	JPEG Format = "jpeg"
 	PNG  Format = "png"
+	// WEBP is lossy WebP encode (pure Go; Quality maps to encoder quality).
+	WEBP Format = "webp"
 )
 
 // Options controls resize/encode.
@@ -33,7 +37,7 @@ type Options struct {
 	MaxWidth  int
 	MaxHeight int
 	Format    Format
-	// Quality for JPEG (1-100, default 85).
+	// Quality for JPEG/WebP (1-100, default 85).
 	Quality int
 }
 
@@ -63,8 +67,11 @@ func Transform(src io.Reader, opts Options) ([]byte, string, error) {
 	case PNG:
 		ct = "image/png"
 		err = png.Encode(&buf, img)
+	case WEBP:
+		ct = "image/webp"
+		err = webp.Encode(&buf, img, &webp.Options{Quality: float32(opts.Quality)})
 	default:
-		return nil, "", fmt.Errorf("imagex: unknown format %q (webp encode unsupported)", opts.Format)
+		return nil, "", fmt.Errorf("imagex: unknown format %q", opts.Format)
 	}
 	if err != nil {
 		return nil, "", err
