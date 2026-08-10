@@ -1,8 +1,8 @@
 # Irmik
 
-**Irmik** is a Next.js-inspired meta-framework for Go. It sits on [Gin](https://github.com/gin-gonic/gin) and gives you file-based routing, route-level rendering modes (SSR / SSG / ISR / Static / CSR), `html/template` pages, React/Vite islands, Markdown content collections, and a small CLI — without dragging in auth, ORM, or a full CMS.
+**Irmik** is a Next.js-inspired meta-framework for Go. It sits on [Gin](https://github.com/gin-gonic/gin) and gives you file-based routing, route-level rendering modes (SSR / SSG / ISR / Static / CSR), `html/template` pages, React/Vite islands, Markdown content collections, a small CLI, and an optional SQL data stack — without dragging in a full CMS.
 
-> **Türkçe özet:** Irmik, Gin üzerine kurulu, dosya tabanlı rotalar ve SSR/SSG/ISR modları sunan bir meta-framework’tür. Sayfalar `html/template`, etkileşimli parçalar React/Vite islands, içerik Markdown koleksiyonlarıdır. Phase 1 odaklıdır; auth/DB sonraki fazlarda.
+> **Türkçe özet:** Irmik, Gin üzerine kurulu, dosya tabanlı rotalar ve SSR/SSG/ISR modları sunan bir meta-framework’tür. Sayfalar `html/template`, etkileşimli parçalar React/Vite islands, içerik Markdown koleksiyonlarıdır. Phase 2.1 auth/session; Phase 2.2 SQL/migration.
 
 **Module:** [`github.com/boracomet/go-irmik`](https://github.com/boracomet/go-irmik)
 
@@ -18,7 +18,9 @@
 | **Content** | `content/<collection>/**/*.md` + frontmatter (goldmark) |
 | **SEO** | Title/OG/Twitter/JSON-LD helpers, `sitemap.xml`, `robots.txt` |
 | **Cache** | Memory / disk / Redis; ISR keys; `irmik cache clear` |
-| **CLI** | `dev`, `build`, `generate`, `start`, `cache clear` |
+| **Data** | `irmik/db` (pgx / sqlite / mysql) + `irmik/migrate` + optional GORM helper |
+| **Auth** | Sessions, CSRF, JWT, passwords, RBAC, OAuth provider stubs ([docs/auth.md](docs/auth.md)) |
+| **CLI** | `dev`, `build`, `generate`, `start`, `cache clear`, `migrate` |
 
 ## Quick start
 
@@ -115,6 +117,25 @@ irmik dev               # Gin + optional Vite + fsnotify
 irmik build             # islands + SSG/ISR seed + sitemap → out/
 irmik start             # production serve
 irmik cache clear       # wipe configured cache store
+irmik migrate up|down|status|create <name>
+```
+
+## Database (Phase 2.2)
+
+SQL via `database/sql` (postgres/pgx, sqlite/modernc, mysql) and golang-migrate–compatible files under `migrations/`. See [docs/database.md](docs/database.md).
+
+```yaml
+# irmik.yaml
+database:
+  driver: sqlite
+  dsn: ./data/app.db
+  migratePath: migrations
+```
+
+```bash
+irmik migrate create add_users
+irmik migrate up
+irmik migrate status
 ```
 
 ## Architecture
@@ -138,11 +159,21 @@ See [docs/architecture.md](docs/architecture.md) and [docs/statigo-lessons.md](d
 
 ## Example
 
-Fully wired demo: [`examples/blog`](examples/blog) — SSR home, SSG about, ISR posts, Counter island.
+Fully wired demos:
 
-## Roadmap (Phase 2+)
+- [`examples/blog`](examples/blog) — SSR home, SSG about, ISR posts, Counter island
+- [`examples/auth`](examples/auth) — session login, CSRF, JWT, RBAC
 
-Auth/session, DB/migrations, validation/forms, queues, OpenAPI/gRPC, observability, image optimization, `embed.FS` single-binary sites, richer i18n routing.
+## Phase 2 status
+
+| Area | Status | Docs |
+|------|--------|------|
+| **2.1 Auth stack** | Done | [docs/auth.md](docs/auth.md) |
+| **2.2 Database / migrations** | Done | [docs/database.md](docs/database.md) |
+
+## Roadmap (later)
+
+Validation/forms UI helpers, queues, OpenAPI/gRPC, observability, image optimization, `embed.FS` single-binary sites, richer i18n routing.
 
 ## License
 

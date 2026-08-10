@@ -29,6 +29,10 @@ Irmik is a thin meta-framework around Gin. The public SDK lives under `irmik/`; 
 | `irmik/content` | Markdown + frontmatter |
 | `irmik/seo` | Head tags, sitemap, robots |
 | `irmik/cache` | memory / disk / redis |
+| `irmik/db`, `irmik/migrate`, `irmik/db/gormx` | SQL open + migrations (+ optional GORM) |
+| `irmik/validate` | Struct validation + Gin bind helpers |
+| `irmik/session`, `irmik/csrf` | Cookie sessions + CSRF |
+| `irmik/auth`, `irmik/rbac` | Login/JWT/passwords/OAuth stubs + RBAC |
 | `irmik/config` | `irmik.yaml` + env |
 | `irmik/plugin` | before/after start/build/stop hooks |
 | `irmik/tmplfunc`, `slug`, `fsutil` | shared helpers (StatiGo-inspired) |
@@ -36,8 +40,8 @@ Irmik is a thin meta-framework around Gin. The public SDK lives under `irmik/`; 
 
 ## Config surface
 
-Primary file: `irmik.yaml` (`app`, `server`, `cache`, `build`, `content`, `seo`, `islands`, `i18n`). Env overrides: `IRMIK_ENV`, `IRMIK_BASE_URL`, `IRMIK_PORT`, `IRMIK_CACHE_DRIVER`, `REDIS_URL`, …
+Primary file: `irmik.yaml` (`app`, `server`, `cache`, `database`, `session`, `auth`, `build`, `content`, `seo`, `islands`, `i18n`). Env overrides: `IRMIK_ENV`, `IRMIK_BASE_URL`, `IRMIK_PORT`, `IRMIK_CACHE_DRIVER`, `REDIS_URL`, `DATABASE_URL`, `IRMIK_JWT_SECRET`, `IRMIK_SESSION_DRIVER`, …
 
 ## Non-goals (Phase 1)
 
-Auth, database, queues, OpenAPI, gRPC, full i18n URL maps, Brotli dual-write, minify-on-serve — deferred to later phases.
+Queues, OpenAPI, gRPC, full i18n URL maps, Brotli dual-write, minify-on-serve — deferred. Auth landed in Phase 2.1 ([docs/auth.md](auth.md)); database in Phase 2.2 ([docs/database.md](database.md)).

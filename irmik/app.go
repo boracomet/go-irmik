@@ -10,6 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/boracomet/go-irmik/irmik/auth"
 	"github.com/boracomet/go-irmik/irmik/cache"
 	"github.com/boracomet/go-irmik/irmik/config"
 	"github.com/boracomet/go-irmik/irmik/island"
@@ -18,6 +19,7 @@ import (
 	"github.com/boracomet/go-irmik/irmik/plugin"
 	"github.com/boracomet/go-irmik/irmik/render"
 	"github.com/boracomet/go-irmik/irmik/router"
+	"github.com/boracomet/go-irmik/irmik/session"
 	"github.com/boracomet/go-irmik/irmik/tmplfunc"
 )
 
@@ -30,6 +32,10 @@ type App struct {
 	Router   *router.Router
 	Renderer *render.Engine
 	Islands  *island.Manager
+	// Sessions is optional cookie session manager (EnableSessions).
+	Sessions *session.Manager
+	// Auth is optional authenticator (EnableAuth); JWT + session helpers.
+	Auth *auth.Authenticator
 
 	ready atomic.Bool
 	srv   *http.Server
@@ -75,6 +81,48 @@ func New(cfg config.Config) (*App, error) {
 
 	middleware.Health(engine, app.Ready)
 	return app, nil
+}
+
+// EnableSessions constructs a session.Manager from cfg.Session and mounts
+// its middleware on the Gin engine. Safe to call once after New.
+func (a *App) EnableSessions() error {
+	if a.Sessions != nil {
+		return nil
+	}
+	sc := a.Config.Session
+	mgr, err := session.NewManager(session.Options{
+		Name:     sc.Name,
+		Secret:   sc.Secret,
+		MaxAge:   sc.MaxAge,
+		Path:     sc.Path,
+		Domain:   sc.Domain,
+		Secure:   a.Config.SessionSecure(),
+		HTTPOnly: a.Config.SessionHTTPOnly(),
+		SameSite: sc.SameSite,
+		Driver:   sc.Driver,
+		RedisURL: sc.RedisURL,
+	})
+	if err != nil {
+		return fmt.Errorf("irmik: sessions: %w", err)
+	}
+	a.Sessions = mgr
+	a.Engine.Use(mgr.Middleware())
+	return nil
+}
+
+// EnableAuth constructs an auth.Authenticator from cfg.Auth.
+// Does not mount middleware; call Auth.InjectSessionUser / MiddlewareJWT as needed.
+func (a *App) EnableAuth() *auth.Authenticator {
+	if a.Auth != nil {
+		return a.Auth
+	}
+	ac := a.Config.Auth
+	a.Auth = auth.New(auth.Config{
+		JWTSecret: ac.JWTSecret,
+		JWTIssuer: ac.JWTIssuer,
+		AccessTTL: ac.AccessTTL,
+	})
+	return a.Auth
 }
 
 // MountPages creates the renderer (if needed), discovers app/ routes, and binds Gin handlers.
@@ -222,6 +270,9 @@ func (a *App) Run(ctx context.Context) error {
 
 	if a.Cache != nil {
 		_ = a.Cache.Close()
+	}
+	if a.Sessions != nil {
+		_ = a.Sessions.Close()
 	}
 	_ = a.Plugins.Run(plugin.HookAfterStop, stopPC)
 

@@ -1,0 +1,25 @@
+app:
+  name: auth-demo
+  env: development
+  baseURL: http://127.0.0.1:8080
+
+server:
+  host: 127.0.0.1
+  port: 8080
+
+session:
+  driver: memory
+  name: irmik_session
+  maxAge: 24h
+  sameSite: lax
+
+auth:
+  jwtIssuer: irmik-auth-demo
+  accessTTL: 15m
+  # jwtSecret via IRMIK_JWT_SECRET or overridden in main for local demo
+
+cache:
+  driver: memory
+
+islands:
+  enabled: false

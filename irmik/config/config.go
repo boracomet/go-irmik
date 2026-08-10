@@ -16,11 +16,14 @@ type Config struct {
 	App      AppConfig      `yaml:"app"`
 	Server   ServerConfig   `yaml:"server"`
 	Cache    CacheConfig    `yaml:"cache"`
+	Database DatabaseConfig `yaml:"database"`
 	Build    BuildConfig    `yaml:"build"`
 	Content  ContentConfig  `yaml:"content"`
 	SEO      SEOConfig      `yaml:"seo"`
 	Islands  IslandsConfig  `yaml:"islands"`
 	I18n     I18nConfig     `yaml:"i18n"`
+	Session  SessionConfig  `yaml:"session"`
+	Auth     AuthConfig     `yaml:"auth"`
 }
 
 type AppConfig struct {
@@ -74,6 +77,57 @@ type I18nConfig struct {
 	Locales       []string `yaml:"locales"`
 }
 
+// SessionConfig configures cookie sessions (Phase 2.1).
+type SessionConfig struct {
+	Driver   string        `yaml:"driver"` // memory | redis
+	Name     string        `yaml:"name"`
+	Secret   string        `yaml:"secret"`
+	MaxAge   time.Duration `yaml:"maxAge"`
+	Path     string        `yaml:"path"`
+	Domain   string        `yaml:"domain"`
+	Secure   *bool         `yaml:"secure"` // nil → !IsDev()
+	HTTPOnly *bool         `yaml:"httpOnly"`
+	SameSite string        `yaml:"sameSite"` // lax | strict | none
+	RedisURL string        `yaml:"redisURL"`
+}
+
+// AuthConfig configures JWT and related secrets (Phase 2.1).
+type AuthConfig struct {
+	JWTSecret string        `yaml:"jwtSecret"`
+	JWTIssuer string        `yaml:"jwtIssuer"`
+	AccessTTL time.Duration `yaml:"accessTTL"`
+}
+
+// DatabaseConfig holds SQL connection and migration settings (Phase 2.2).
+type DatabaseConfig struct {
+	Driver       string `yaml:"driver"` // postgres | pgx | sqlite | mysql
+	DSN          string `yaml:"dsn"`
+	URL          string `yaml:"url"` // alias for DSN; often set via DATABASE_URL
+	MaxOpenConns int    `yaml:"maxOpenConns"`
+	MaxIdleConns int    `yaml:"maxIdleConns"`
+	MigratePath  string `yaml:"migratePath"`
+}
+
+// DSNOrURL returns the connection string (DSN wins over URL when both set).
+func (d DatabaseConfig) DSNOrURL() string {
+	if strings.TrimSpace(d.DSN) != "" {
+		return strings.TrimSpace(d.DSN)
+	}
+	return strings.TrimSpace(d.URL)
+}
+
+// DriverName returns the configured driver, defaulting to postgres when a DSN is set.
+func (d DatabaseConfig) DriverName() string {
+	name := strings.ToLower(strings.TrimSpace(d.Driver))
+	if name != "" {
+		return name
+	}
+	if d.DSNOrURL() != "" {
+		return "postgres"
+	}
+	return ""
+}
+
 // Default returns sensible Phase-1 defaults.
 func Default() Config {
 	return Config{
@@ -115,8 +169,28 @@ func Default() Config {
 			DefaultLocale: "en",
 			Locales:       []string{"en"},
 		},
+		Database: DatabaseConfig{
+			Driver:       "",
+			MaxOpenConns: 10,
+			MaxIdleConns: 5,
+			MigratePath:  "migrations",
+		},
+		Session: SessionConfig{
+			Driver:   "memory",
+			Name:     "irmik_session",
+			MaxAge:   24 * time.Hour,
+			Path:     "/",
+			SameSite: "lax",
+			HTTPOnly: boolPtr(true),
+		},
+		Auth: AuthConfig{
+			JWTIssuer: "irmik",
+			AccessTTL: 15 * time.Minute,
+		},
 	}
 }
+
+func boolPtr(v bool) *bool { return &v }
 
 // Load merges YAML file (optional), .env (optional), and environment variables.
 func Load(path string) (Config, error) {
@@ -163,6 +237,55 @@ func applyEnv(cfg *Config) {
 	}
 	if v := os.Getenv("REDIS_URL"); v != "" {
 		cfg.Cache.RedisURL = v
+		if cfg.Session.RedisURL == "" {
+			cfg.Session.RedisURL = v
+		}
+	}
+	if v := os.Getenv("IRMIK_SESSION_DRIVER"); v != "" {
+		cfg.Session.Driver = strings.ToLower(v)
+	}
+	if v := os.Getenv("IRMIK_SESSION_SECRET"); v != "" {
+		cfg.Session.Secret = v
+	}
+	if v := os.Getenv("IRMIK_SESSION_NAME"); v != "" {
+		cfg.Session.Name = v
+	}
+	if v := os.Getenv("IRMIK_SESSION_REDIS_URL"); v != "" {
+		cfg.Session.RedisURL = v
+	}
+	if v := os.Getenv("IRMIK_JWT_SECRET"); v != "" {
+		cfg.Auth.JWTSecret = v
+	}
+	if v := os.Getenv("IRMIK_AUTH_JWT_SECRET"); v != "" {
+		cfg.Auth.JWTSecret = v
+	}
+	if v := os.Getenv("IRMIK_JWT_ISSUER"); v != "" {
+		cfg.Auth.JWTIssuer = v
+	}
+	if v := os.Getenv("DATABASE_URL"); v != "" {
+		cfg.Database.URL = v
+	}
+	if v := os.Getenv("IRMIK_DATABASE_URL"); v != "" {
+		cfg.Database.URL = v
+	}
+	if v := os.Getenv("IRMIK_DB_DSN"); v != "" {
+		cfg.Database.DSN = v
+	}
+	if v := os.Getenv("IRMIK_DB_DRIVER"); v != "" {
+		cfg.Database.Driver = strings.ToLower(v)
+	}
+	if v := os.Getenv("IRMIK_MIGRATE_PATH"); v != "" {
+		cfg.Database.MigratePath = v
+	}
+	if v := os.Getenv("IRMIK_DB_MAX_OPEN"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil {
+			cfg.Database.MaxOpenConns = n
+		}
+	}
+	if v := os.Getenv("IRMIK_DB_MAX_IDLE"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil {
+			cfg.Database.MaxIdleConns = n
+		}
 	}
 }
 
@@ -181,4 +304,20 @@ func (c Config) CacheDriver() string {
 		return "memory"
 	}
 	return d
+}
+
+// SessionSecure returns whether the session cookie should be Secure.
+func (c Config) SessionSecure() bool {
+	if c.Session.Secure != nil {
+		return *c.Session.Secure
+	}
+	return !c.IsDev()
+}
+
+// SessionHTTPOnly returns whether the session cookie should be HttpOnly.
+func (c Config) SessionHTTPOnly() bool {
+	if c.Session.HTTPOnly != nil {
+		return *c.Session.HTTPOnly
+	}
+	return true
 }

@@ -37,7 +37,7 @@ func Root() *cobra.Command {
 		SilenceErrors: true,
 	}
 	root.PersistentFlags().StringP("config", "c", "irmik.yaml", "path to irmik.yaml")
-	root.AddCommand(cmdGenerate(), cmdDev(), cmdBuild(), cmdStart(), cmdCache())
+	root.AddCommand(cmdGenerate(), cmdDev(), cmdBuild(), cmdStart(), cmdCache(), cmdMigrate())
 	return root
 }
 
