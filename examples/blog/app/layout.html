@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  {{ islandRuntime }}
+  {{ seoHead . }}
+  <link rel="stylesheet" href="/public/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/">Irmik Blog</a>
+    <nav>
+      <a href="/">Home</a>
+      <a href="/blog">Blog</a>
+      <a href="/about">About</a>
+    </nav>
+  </header>
+  <main class="container">
+    {{ .Content }}
+  </main>
+  <footer class="site-footer">
+    <p>Built with <a href="https://github.com/boracomet/go-irmik">Irmik</a> — Gin + html/template + React islands.</p>
+  </footer>
+</body>
+</html>

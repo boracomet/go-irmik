@@ -1,0 +1,8 @@
+<article class="post">
+  <h1>{{ .Data.Title }}</h1>
+  {{ if .Data.Date }}<p class="meta"><time>{{ formatDate .Data.Date "en" }}</time></p>{{ end }}
+  <div class="prose">
+    {{ .Data.Body }}
+  </div>
+  <p class="back"><a href="/blog">← All posts</a></p>
+</article>

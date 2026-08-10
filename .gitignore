@@ -1,0 +1,28 @@
+# Binaries
+/bin/
+/dist/
+/out/
+*.exe
+*.test
+# Note: do not ignore /irmik — that is the Go package tree.
+# Build the CLI into bin/: go build -o bin/irmik ./cmd/irmik
+
+# Deps / build
+node_modules/
+examples/**/node_modules/
+examples/**/dist/
+.vite/
+*.tsbuildinfo
+
+# Env / IDE
+.env
+.env.local
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# Coverage / cache
+coverage.out
+.irmik/
+*.log

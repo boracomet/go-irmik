@@ -1,0 +1,3 @@
+mode: isr
+revalidate: 60s
+sitemap: true

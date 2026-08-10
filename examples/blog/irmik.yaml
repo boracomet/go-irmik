@@ -1,0 +1,35 @@
+app:
+  name: irmik-blog
+  env: development
+  baseURL: http://localhost:8080
+
+server:
+  host: 127.0.0.1
+  port: 8080
+
+cache:
+  driver: memory
+  ttl: 60s
+
+build:
+  outDir: out
+  publicDir: public
+  appDir: app
+  templates: templates
+
+content:
+  dir: content
+
+seo:
+  siteName: Irmik Blog
+  generateSitemap: true
+
+islands:
+  enabled: true
+  dir: islands
+  outDir: public/islands
+  devServer: http://localhost:5173
+
+i18n:
+  defaultLocale: en
+  locales: [en]

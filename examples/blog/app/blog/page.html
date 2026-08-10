@@ -1,0 +1,15 @@
+<section>
+  <h1>Blog</h1>
+  <p>Posts are loaded from <code>content/posts</code>.</p>
+  <ul class="post-list">
+    {{ range .Data.Posts }}
+    <li>
+      <a href="/blog/{{ .Slug }}"><strong>{{ .Title }}</strong></a>
+      {{ if .Date }}<time>{{ formatDate .Date "en" }}</time>{{ end }}
+      {{ if .Description }}<p>{{ .Description }}</p>{{ end }}
+    </li>
+    {{ else }}
+    <li>No posts yet.</li>
+    {{ end }}
+  </ul>
+</section>
