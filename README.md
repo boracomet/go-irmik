@@ -2,7 +2,12 @@
   <img src="assets/irmik.png" alt="Irmik" width="320" />
 </p>
 
-# Irmik
+<h1 align="center">Irmik</h1>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Go-1.26-00ADD8?logo=go&logoColor=white" alt="Go" />
+  <img src="https://img.shields.io/badge/License-MIT-blue" alt="License MIT" />
+</p>
 
 **Irmik** is a Gin-based meta-framework for Go: **thin core**, **wide opt-in catalog**.  
 Use it for **admin / internal systems** and **SSR sites** that need security defaults and speed — without dragging a CMS or a megakit into every binary.
