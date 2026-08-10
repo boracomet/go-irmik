@@ -1,11 +1,22 @@
 // Package queue provides a small job-queue interface and an in-memory implementation
-// with a worker Run loop. Redis/asynq backends can implement Queue later without
-// changing callers.
+// with a worker Run loop.
+//
+// Redis/asynq is opt-in via irmik/queue/asynqx so core binaries stay free of
+// asynq and Redis client deps:
+//
+//	import _ "github.com/boracomet/go-irmik/irmik/queue/asynqx" // registers "asynq"
+//	q, err := queue.New(queue.Options{Driver: "asynq", RedisURL: "redis://localhost:6379/0"})
+//
+// Or open explicitly without blank-import:
+//
+//	q, err := asynqx.Open(asynqx.Options{RedisURL: "redis://localhost:6379/0"})
 package queue
 
 import (
 	"context"
 	"errors"
+	"fmt"
+	"strings"
 	"sync"
 	"time"
 )
@@ -30,6 +41,61 @@ type Queue interface {
 	// Run blocks, invoking h for each job until ctx is cancelled or Close.
 	Run(ctx context.Context, h Handler) error
 	Close() error
+}
+
+// Options configures queue.New.
+type Options struct {
+	// Driver selects the backend: "memory" (default) or a registered name such as "asynq".
+	Driver string
+	// Buffer is the in-memory channel size (memory driver only; default 64).
+	Buffer int
+	// RedisURL is passed to registered Redis-backed drivers (e.g. asynq).
+	RedisURL string
+	// Concurrency is worker concurrency for backends that support it (default backend-specific).
+	Concurrency int
+	// QueueName is the named queue for backends that support multiple queues (asynq default "default").
+	QueueName string
+}
+
+// DriverFunc constructs a Queue from Options.
+type DriverFunc func(opts Options) (Queue, error)
+
+var (
+	driversMu sync.RWMutex
+	drivers   = map[string]DriverFunc{}
+)
+
+// Register adds a named queue driver (e.g. "asynq" via irmik/queue/asynqx).
+// Later registrations for the same name replace the previous factory.
+func Register(name string, fn DriverFunc) {
+	name = strings.ToLower(strings.TrimSpace(name))
+	if name == "" || fn == nil {
+		return
+	}
+	driversMu.Lock()
+	drivers[name] = fn
+	driversMu.Unlock()
+}
+
+// New creates a Queue from Options.
+// Built-in: memory (default). Asynq requires blank-importing irmik/queue/asynqx
+// or calling asynqx.Open directly.
+func New(opts Options) (Queue, error) {
+	switch d := strings.ToLower(strings.TrimSpace(opts.Driver)); d {
+	case "", "memory":
+		return NewMemory(opts.Buffer), nil
+	default:
+		driversMu.RLock()
+		fn, ok := drivers[d]
+		driversMu.RUnlock()
+		if ok {
+			return fn(opts)
+		}
+		if d == "asynq" || d == "redis" {
+			return nil, fmt.Errorf("queue: %s driver not registered; blank-import github.com/boracomet/go-irmik/irmik/queue/asynqx", d)
+		}
+		return nil, fmt.Errorf("queue: unknown driver %q", d)
+	}
 }
 
 // Memory is a buffered in-process queue.
