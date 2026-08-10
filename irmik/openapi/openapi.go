@@ -1,6 +1,13 @@
 // Package openapi provides a lightweight OpenAPI 3 document builder and Gin
 // serve helper. No swaggo/code generation dependency — annotate routes in Go.
 //
+// Serve JSON with Doc.Mount, and optionally a CDN-backed Swagger UI via
+// SwaggerUIHandler / MountSwagger (no vendored swagger-ui assets in this module).
+//
+//	doc := openapi.New("API", "1.0.0")
+//	doc.Mount(r, "/openapi.json")
+//	openapi.MountSwagger(r, "/docs", "/openapi.json")
+//
 // Experimental: covers common CRUD docs; not a full OpenAPI validator.
 package openapi
 
@@ -142,6 +149,75 @@ func (d *Doc) Mount(r gin.IRoutes, path string) {
 		path = "/openapi.json"
 	}
 	r.GET(path, d.Handler())
+}
+
+// MountSwagger registers a CDN-backed Swagger UI page that loads this doc's JSON
+// from specPath (default "/openapi.json"). Also mounts the JSON if not already
+// registered at the same path — call Mount separately when you want a custom JSON path.
+//
+//	doc.Mount(r, "/openapi.json")
+//	doc.MountSwagger(r, "/docs", "/openapi.json")
+func (d *Doc) MountSwagger(r gin.IRoutes, uiPath, specPath string) {
+	if specPath == "" {
+		specPath = "/openapi.json"
+	}
+	MountSwagger(r, uiPath, specPath)
+}
+
+// SwaggerUIHandler returns HTML that loads Swagger UI from a public CDN and
+// points it at specURL (absolute path or full URL, e.g. "/openapi.json").
+//
+// This keeps heavy swagger-ui assets out of the Go module. For fully offline
+// installs, vendor swagger-ui dist yourself and serve static files that fetch
+// the same OpenAPI JSON endpoint.
+func SwaggerUIHandler(specURL string) gin.HandlerFunc {
+	if specURL == "" {
+		specURL = "/openapi.json"
+	}
+	html := swaggerUIHTML(specURL)
+	return func(c *gin.Context) {
+		c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(html))
+	}
+}
+
+// MountSwagger registers GET path (default "/docs") serving Swagger UI for specURL.
+func MountSwagger(r gin.IRoutes, path, specURL string) {
+	if path == "" {
+		path = "/docs"
+	}
+	if specURL == "" {
+		specURL = "/openapi.json"
+	}
+	r.GET(path, SwaggerUIHandler(specURL))
+}
+
+func swaggerUIHTML(specURL string) string {
+	// Escape for use inside a JS string literal.
+	escaped := strings.ReplaceAll(specURL, `\`, `\\`)
+	escaped = strings.ReplaceAll(escaped, `"`, `\"`)
+	return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Swagger UI</title>
+  <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css">
+</head>
+<body>
+  <div id="swagger-ui"></div>
+  <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js" crossorigin></script>
+  <script>
+    window.onload = () => {
+      window.ui = SwaggerUIBundle({
+        url: "` + escaped + `",
+        dom_id: "#swagger-ui",
+        presets: [SwaggerUIBundle.presets.apis],
+        layout: "BaseLayout"
+      });
+    };
+  </script>
+</body>
+</html>`
 }
 
 // JSONSchemaObject is a helper for object schemas.
