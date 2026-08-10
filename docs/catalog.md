@@ -25,7 +25,7 @@ Irmik keeps **`irmik.New` and the root `irmik` package thin**. Extra capabilitie
 | `irmik/content` | Markdown collections |
 | `irmik/seo` | OG/JSON-LD/sitemap |
 | `irmik/cache` | Memory/disk interfaces (+ optional Redis via `cache/redisx`) |
-| `irmik/middleware` | Recovery, request ID, health, … |
+| `irmik/middleware` | Recovery, request ID, health/ready, opt-in `RequestLog` |
 | `irmik/plugin` | Lifecycle hooks |
 | `irmik/tmplfunc`, `slug`, `fsutil`, `meta`, `lifecycle` | Shared helpers |
 
@@ -55,7 +55,7 @@ Irmik keeps **`irmik.New` and the root `irmik` package thin**. Extra capabilitie
 | `irmik/mail` | Stable | `mail.NewSMTP(cfg)` / `mail.Memory` | `net/smtp` |
 | `irmik/queue` | Stable | `queue.NewMemory(64)` + `Run` | none |
 | `irmik/queue/asynqx` | Stable | blank-import or `asynqx.Open(opts)` | hibiken/asynq + Redis |
-| `irmik/scheduler` | Stable* | `scheduler.New()` + `Every` / 5-field `Cron` | none (*cron subset) |
+| `irmik/scheduler` | Stable | `scheduler.New()` + `Every` / `AddCron` / `AddCronTZ` | robfig/cron/v3 (scheduler only) |
 | `irmik/openapi` | Experimental | `openapi.New(…).Mount` + `MountSwagger` | none (Swagger UI via CDN) |
 | `irmik/observe` | Stable | `observe.NewLogger(opts)` | `log/slog` |
 | `irmik/observe/otelx` | Experimental | `otelx.Setup(ctx, opts)` | OpenTelemetry SDK |
@@ -66,9 +66,10 @@ Irmik keeps **`irmik.New` and the root `irmik` package thin**. Extra capabilitie
 | `irmik/grpcx` | Stable | `grpcx.NewServer(opts).ListenAndServe(ctx)` | google.golang.org/grpc |
 | `irmik/proxy` | Stable | `proxy.Handler(proxy.Options{Target: "…"})` | `httputil` |
 | `irmik/testkit` | Stable | `testkit.New(t).GET("/").Do()` | gin test |
-| `irmik/audit` | Stable | `audit.Record(ctx, sink, event)` | slog / memory |
-
-\*Marked features are intentionally subset implementations — see package godoc.
+| `irmik/audit` | Stable | `audit.Record` + `audit.Middleware(sink)` | slog / memory |
+| `irmik/cors` | Stable | `r.Use(cors.Middleware(opts))` | none |
+| `irmik/htmx` | Stable | `htmx.IsRequest` / `Redirect` / `Trigger` / `RenderPartial` | none |
+| `irmik/health` | Stable | `health.New()` + `app.RegisterReadyCheck` | none |
 
 ## Wiring snippets
 
@@ -126,7 +127,33 @@ _ = q.Enqueue(ctx, queue.Job{Name: "email.welcome", Payload: payload})
 
 sched := scheduler.New()
 _ = sched.Add(scheduler.Job{Name: "cleanup", Every: time.Hour, Fn: cleanup})
+_ = sched.AddCronTZ("daily-report", "0 9 * * *", "Europe/Istanbul", report)
 go sched.Run(ctx)
+```
+
+### CORS / request log / audit / HTMX / ready checks
+
+```go
+import (
+    "github.com/boracomet/go-irmik/irmik/audit"
+    "github.com/boracomet/go-irmik/irmik/cors"
+    "github.com/boracomet/go-irmik/irmik/health"
+    "github.com/boracomet/go-irmik/irmik/htmx"
+)
+
+app.Engine.Use(cors.Middleware(cors.Options{AllowOrigins: []string{"https://admin.example.com"}}))
+app.UseRequestLog()
+app.Engine.Use(audit.Middleware(audit.Logger{})) // or &audit.Memory{}
+app.RegisterReadyCheck("db", health.PingDB(db))
+
+app.Engine.POST("/users", func(c *gin.Context) {
+    if htmx.IsRequest(c) {
+        htmx.Trigger(c, "userSaved")
+        _ = htmx.RenderPartial(c, rowTmpl, "row", data)
+        return
+    }
+    htmx.Redirect(c, "/users")
+})
 ```
 
 ### Asynq / Redis queue (opt-in)
@@ -184,10 +211,6 @@ out, ct, err := imagex.Transform(r, imagex.Options{
     MaxWidth: 800, Format: imagex.WEBP, Quality: 80,
 })
 ```
-
-## What is *not* in the catalog yet
-
-- Full cron syntax / timezone-aware scheduler (see [roadmap.md](roadmap.md) P1)
 
 Prioritized “what else / what not to add to core”: **[roadmap.md](roadmap.md)**. Positioning vs Gin / StatiGo / Echo / Buffalo / Fiber: **[compare.md](compare.md)**.
 

@@ -1,12 +1,15 @@
 package middleware
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
+
+	"github.com/boracomet/go-irmik/irmik/health"
 )
 
 const RequestIDHeader = "X-Request-ID"
@@ -47,10 +50,24 @@ func GetRequestID(c *gin.Context) string {
 // ReadyFunc reports whether the app is ready to serve traffic.
 type ReadyFunc func() bool
 
+// HealthConfig configures /health and /ready registration.
+type HealthConfig struct {
+	// Ready is the process-level gate (e.g. finished startup). Nil means always ready.
+	Ready ReadyFunc
+	// Checks are optional dependency probes. Required failures make /ready 503.
+	// /health stays liveness-only (always 200 when the process is up).
+	Checks *health.Registry
+}
+
 // Health registers /health and /ready on the engine.
 // /health is always 200 when the process is up.
 // /ready returns 200 when ready() is true (or ready is nil), else 503.
 func Health(r gin.IRoutes, ready ReadyFunc) {
+	HealthWith(r, HealthConfig{Ready: ready})
+}
+
+// HealthWith registers /health (liveness) and /ready (readiness + optional checks).
+func HealthWith(r gin.IRoutes, cfg HealthConfig) {
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"status": "ok",
@@ -58,12 +75,32 @@ func Health(r gin.IRoutes, ready ReadyFunc) {
 		})
 	})
 	r.GET("/ready", func(c *gin.Context) {
-		if ready != nil && !ready() {
-			c.JSON(http.StatusServiceUnavailable, gin.H{"status": "not_ready"})
+		ok := cfg.Ready == nil || cfg.Ready()
+		body := gin.H{"status": "ready"}
+		if cfg.Checks != nil {
+			checksOK, results := cfg.Checks.Evaluate(c.Request.Context())
+			body["checks"] = results
+			if !checksOK {
+				ok = false
+			}
+		}
+		if !ok {
+			body["status"] = "not_ready"
+			c.JSON(http.StatusServiceUnavailable, body)
 			return
 		}
-		c.JSON(http.StatusOK, gin.H{"status": "ready"})
+		c.JSON(http.StatusOK, body)
 	})
+}
+
+// ReadyFromChecks adapts a health.Registry to ReadyFunc (ignores process gate).
+func ReadyFromChecks(reg *health.Registry) ReadyFunc {
+	return func() bool {
+		if reg == nil {
+			return true
+		}
+		return reg.Ready(context.Background())
+	}
 }
 
 func newRequestID() string {

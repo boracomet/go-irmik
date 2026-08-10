@@ -41,7 +41,7 @@ You get file-based routing, route-level **SSR / SSG / ISR / Static / CSR**, `htm
 | **DB / migrate** | Opt-in drivers + golang-migrate–compatible files + optional GORM | [database](docs/database.md) |
 | **Realtime** | SSE streams + WebSocket hub/rooms | [realtime](docs/realtime.md) |
 | **Security** | Headers by default; rate limit / login limits for admin | [security](docs/security.md) |
-| **Catalog** | upload, storage/S3, forms, mail, queue, scheduler, openapi, observe, compress, imagex, secrets, grpcx, proxy, testkit, audit | [catalog](docs/catalog.md) |
+| **Catalog** | upload, storage/S3, forms, mail, queue, scheduler (cron+TZ), openapi, observe, compress, imagex, secrets, grpcx, proxy, testkit, audit, cors, htmx, health checks | [catalog](docs/catalog.md) |
 | **CLI** | generate routes, dev server, build/export, migrate | below |
 
 ## Comparison (scan)
@@ -244,9 +244,9 @@ See [docs/architecture.md](docs/architecture.md).
 | Lean linking + security defaults | Done | [docs/security.md](docs/security.md) |
 | Opt-in feature catalog | Done | [docs/catalog.md](docs/catalog.md) |
 
-## What else (without overloading)
+## Opt-in P1 helpers (import only)
 
-Low-cost, opt-in ideas (full cron/timezone, HTMX admin helpers, audit/CORS/logging presets, health dependency checks, `embed.FS`, i18n routing, OpenAPI codegen) — plus an explicit **do not add to core** list — live in **[docs/roadmap.md](docs/roadmap.md)**.
+Timezone cron (`irmik/scheduler`), HTMX admin headers (`irmik/htmx`), CORS (`irmik/cors`), audit Gin middleware (`irmik/audit`), `app.UseRequestLog()`, and `/ready` dependency checks (`app.RegisterReadyCheck` / `irmik/health`) — see [docs/catalog.md](docs/catalog.md). Further ideas and the **do not add to core** list: **[docs/roadmap.md](docs/roadmap.md)**.
 
 ## License
 

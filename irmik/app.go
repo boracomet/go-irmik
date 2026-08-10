@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"html/template"
+	"log/slog"
 	"net/http"
 	"os"
 	"sync/atomic"
@@ -13,6 +14,7 @@ import (
 	"github.com/boracomet/go-irmik/irmik/auth"
 	"github.com/boracomet/go-irmik/irmik/cache"
 	"github.com/boracomet/go-irmik/irmik/config"
+	"github.com/boracomet/go-irmik/irmik/health"
 	"github.com/boracomet/go-irmik/irmik/island"
 	"github.com/boracomet/go-irmik/irmik/lifecycle"
 	"github.com/boracomet/go-irmik/irmik/middleware"
@@ -37,8 +39,9 @@ type App struct {
 	// Auth is optional authenticator (EnableAuth); JWT + session helpers.
 	Auth *auth.Authenticator
 
-	ready atomic.Bool
-	srv   *http.Server
+	ready       atomic.Bool
+	readyChecks *health.Registry
+	srv         *http.Server
 }
 
 // MountOptions configures file-based page mounting.
@@ -87,13 +90,17 @@ func New(cfg config.Config) (*App, error) {
 	}
 
 	app := &App{
-		Config:  cfg,
-		Engine:  engine,
-		Cache:   store,
-		Plugins: plugin.NewRegistry(),
+		Config:      cfg,
+		Engine:      engine,
+		Cache:       store,
+		Plugins:     plugin.NewRegistry(),
+		readyChecks: health.New(),
 	}
 
-	middleware.Health(engine, app.Ready)
+	middleware.HealthWith(engine, middleware.HealthConfig{
+		Ready:  app.lifecycleReady,
+		Checks: app.readyChecks,
+	})
 	return app, nil
 }
 
@@ -115,6 +122,44 @@ func (a *App) EnableRateLimit(cfg middleware.RateLimitConfig) {
 // (e.g. CSP frame-ancestors). Prefer calling early after New.
 func (a *App) EnableSecureHeaders(cfg middleware.SecureHeadersConfig) {
 	a.Engine.Use(middleware.SecureHeaders(cfg))
+}
+
+// UseRequestLog mounts structured slog request logging (method, path, status,
+// latency, request-id). Opt-in; uses slog.Default() when logger is nil.
+func (a *App) UseRequestLog() {
+	a.UseRequestLogWith(nil)
+}
+
+// UseRequestLogWith is UseRequestLog with an explicit logger.
+func (a *App) UseRequestLogWith(logger *slog.Logger) {
+	a.Engine.Use(middleware.RequestLog(logger))
+}
+
+// RegisterReadyCheck adds a required dependency probe for /ready.
+// /health remains liveness-only. Example:
+//
+//	app.RegisterReadyCheck("db", health.PingDB(db))
+func (a *App) RegisterReadyCheck(name string, fn health.CheckFunc) {
+	if a.readyChecks == nil {
+		a.readyChecks = health.New()
+	}
+	a.readyChecks.Register(name, fn)
+}
+
+// RegisterOptionalReadyCheck adds a probe reported on /ready but ignored for readiness.
+func (a *App) RegisterOptionalReadyCheck(name string, fn health.CheckFunc) {
+	if a.readyChecks == nil {
+		a.readyChecks = health.New()
+	}
+	a.readyChecks.RegisterOptional(name, fn)
+}
+
+// ReadyChecks returns the readiness registry (may be empty, never nil after New).
+func (a *App) ReadyChecks() *health.Registry {
+	if a.readyChecks == nil {
+		a.readyChecks = health.New()
+	}
+	return a.readyChecks
 }
 
 // EnableSessions constructs a session.Manager from cfg.Session and mounts
@@ -264,9 +309,21 @@ func (a *App) RemountPages() error {
 	return nil
 }
 
-// Ready reports whether the app has finished starting and can accept traffic.
-func (a *App) Ready() bool {
+// lifecycleReady is the process gate used by /ready (startup finished).
+func (a *App) lifecycleReady() bool {
 	return a.ready.Load()
+}
+
+// Ready reports whether the app has finished starting and required dependency
+// checks pass. Used by callers; /ready also runs Checks via HealthWith.
+func (a *App) Ready() bool {
+	if !a.ready.Load() {
+		return false
+	}
+	if a.readyChecks == nil {
+		return true
+	}
+	return a.readyChecks.Ready(context.Background())
 }
 
 // Use registers a plugin on the app registry.

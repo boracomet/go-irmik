@@ -4,16 +4,16 @@ Irmik’s rule stays: **thin core, wide opt-in catalog**. New work should be imp
 
 ## Recommended next (prioritized)
 
-### P1 — low cost, high value (opt-in)
+### P1 — low cost, high value (opt-in) — done
 
-| Idea | Why | Shape |
-|------|-----|--------|
-| **Full cron + timezone scheduler** | Current `scheduler` is a 5-field subset | Extend `irmik/scheduler` (opt-in) |
-| **Audit middleware presets** | Admin apps need “who did what” fast | Thin wrappers on `irmik/audit` + Gin middleware |
-| **Request logging helper** | Structured access logs without DIY slog glue | `observe` middleware preset |
-| **CORS helper** | Every admin SPA / islands app needs it | Small `middleware` or `cors` package |
-| **Health dependency checks** | `/ready` that pings DB/Redis/queue | Extend existing health/ready hooks |
-| **HTMX helpers for admin** | Partial/HX response helpers, CSRF-friendly forms | Opt-in `irmik/htmx` — not a frontend framework |
+| Idea | Why | Shape | Status |
+|------|-----|--------|--------|
+| **Full cron + timezone scheduler** | Interval + timezone-aware cron | `irmik/scheduler` (`Every`, `AddCron` / `AddCronTZ`, robfig/cron/v3) | Done |
+| **Audit middleware presets** | Admin apps need “who did what” fast | `irmik/audit.Middleware` → existing Sink | Done |
+| **Request logging helper** | Structured access logs without DIY slog glue | `middleware.RequestLog` / `app.UseRequestLog()` | Done |
+| **CORS helper** | Every admin SPA / islands app needs it | `irmik/cors` lean middleware | Done |
+| **Health dependency checks** | `/ready` that pings DB/Redis/queue | `irmik/health` + `app.RegisterReadyCheck` | Done |
+| **HTMX helpers for admin** | Partial/HX response helpers | Opt-in `irmik/htmx` | Done |
 
 ### P2 — useful, still lean
 
