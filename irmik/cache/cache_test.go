@@ -121,4 +121,9 @@ func TestNewDrivers(t *testing.T) {
 		t.Fatal(err)
 	}
 	_ = s.Close()
+
+	_, err = New(Options{Driver: "redis"})
+	if err == nil {
+		t.Fatal("expected error when redis driver is not registered")
+	}
 }

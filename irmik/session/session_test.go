@@ -87,6 +87,13 @@ func TestSessionMiddlewareFlash(t *testing.T) {
 	}
 }
 
+func TestNewRejectsUnregisteredRedis(t *testing.T) {
+	_, err := session.New(session.Options{Driver: "redis"})
+	if err == nil {
+		t.Fatal("expected error when redis driver is not registered")
+	}
+}
+
 func contains(s, sub string) bool {
 	return len(s) >= len(sub) && (s == sub || len(sub) == 0 ||
 		(func() bool {

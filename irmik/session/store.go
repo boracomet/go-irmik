@@ -44,6 +44,7 @@ type Options struct {
 	// SameSite cookie attribute (default: Lax).
 	SameSite string // lax | strict | none
 	// Driver selects the store: memory | redis (default: memory).
+	// Redis requires blank-importing irmik/session/redisx (or session.Register).
 	Driver string
 	// RedisURL for redis driver (falls back to REDIS_URL / localhost).
 	RedisURL string

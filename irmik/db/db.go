@@ -1,4 +1,10 @@
 // Package db opens and wraps database/sql connections for Irmik apps.
+//
+// Drivers are not linked by default. Blank-import the driver you need:
+//
+//	import _ "github.com/boracomet/go-irmik/irmik/db/sqlite"
+//	import _ "github.com/boracomet/go-irmik/irmik/db/postgres"
+//	import _ "github.com/boracomet/go-irmik/irmik/db/mysql"
 package db
 
 import (
@@ -9,10 +15,6 @@ import (
 	"time"
 
 	"github.com/boracomet/go-irmik/irmik/config"
-
-	_ "github.com/go-sql-driver/mysql" // MySQL driver
-	_ "github.com/jackc/pgx/v5/stdlib" // PostgreSQL via pgx
-	_ "modernc.org/sqlite"            // SQLite (pure Go)
 )
 
 // Database is a thin wrapper around *sql.DB with driver metadata.
@@ -41,11 +43,14 @@ func OpenFromConfig(cfg config.DatabaseConfig) (*Database, error) {
 }
 
 // Open opens a *sql.DB for the given driver and DSN.
-// Supported drivers: postgres/pgx, sqlite, mysql.
+// Supported drivers: postgres/pgx, sqlite, mysql (each via blank-import packages).
 func Open(opts Options) (*Database, error) {
 	driver, sqlDriver, err := resolveDriver(opts.Driver)
 	if err != nil {
 		return nil, err
+	}
+	if !driverRegistered(sqlDriver) {
+		return nil, fmt.Errorf("db: driver %q not registered; blank-import github.com/boracomet/go-irmik/irmik/db/%s", sqlDriver, importHint(driver))
 	}
 	dsn := strings.TrimSpace(opts.DSN)
 	if dsn == "" {
@@ -123,6 +128,26 @@ func resolveDriver(name string) (normalized, sqlName string, err error) {
 		return "mysql", "mysql", nil
 	default:
 		return "", "", fmt.Errorf("db: unsupported driver %q (want postgres, sqlite, or mysql)", name)
+	}
+}
+
+func driverRegistered(sqlName string) bool {
+	for _, d := range sql.Drivers() {
+		if d == sqlName {
+			return true
+		}
+	}
+	return false
+}
+
+func importHint(normalized string) string {
+	switch normalized {
+	case "postgres":
+		return "postgres"
+	case "mysql":
+		return "mysql"
+	default:
+		return "sqlite"
 	}
 }
 

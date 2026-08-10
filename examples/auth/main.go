@@ -15,6 +15,7 @@ import (
 	"github.com/boracomet/go-irmik/irmik/auth"
 	"github.com/boracomet/go-irmik/irmik/config"
 	"github.com/boracomet/go-irmik/irmik/csrf"
+	"github.com/boracomet/go-irmik/irmik/middleware"
 	"github.com/boracomet/go-irmik/irmik/rbac"
 	"github.com/boracomet/go-irmik/irmik/validate"
 )
@@ -42,6 +43,7 @@ func main() {
 	if err != nil {
 		fatal(err)
 	}
+	app.EnableSecureDefaults()
 	if err := app.EnableSessions(); err != nil {
 		fatal(err)
 	}
@@ -97,7 +99,7 @@ func main() {
 	sessionAPI := app.Engine.Group("/")
 	sessionAPI.Use(csrf.Middleware(csrf.Options{}))
 
-	sessionAPI.POST("/login", func(c *gin.Context) {
+	sessionAPI.POST("/login", middleware.LoginRateLimit(), func(c *gin.Context) {
 		var body loginBody
 		if err := validate.BindJSON(c, &body); err != nil {
 			validate.Abort(c, err)

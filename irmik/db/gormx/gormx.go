@@ -44,8 +44,8 @@ func dialectorFor(driver string, sqlDB *sql.DB) (gorm.Dialector, error) {
 	case "postgres", "postgresql", "pgx":
 		return postgres.New(postgres.Config{Conn: sqlDB}), nil
 	case "sqlite", "sqlite3":
-		// Conn-only dialector avoids importing a second sqlite driver
-		// (modernc is already registered by irmik/db).
+		// Conn-only dialector avoids importing a second sqlite driver.
+		// Blank-import irmik/db/sqlite (or modernc) before db.Open.
 		return sqliteConnDialector{conn: sqlDB}, nil
 	case "mysql", "mariadb":
 		return mysql.New(mysql.Config{Conn: sqlDB}), nil

@@ -3,6 +3,9 @@ package cache
 import (
 	"context"
 	"errors"
+	"fmt"
+	"strings"
+	"sync"
 	"time"
 )
 
@@ -10,10 +13,10 @@ var ErrMiss = errors.New("cache miss")
 
 // Entry holds cached HTML (or bytes) with optional expiry.
 type Entry struct {
-	Body      []byte
+	Body        []byte
 	ContentType string
-	ExpiresAt time.Time
-	StaleAt   time.Time // ISR: serve stale while revalidating after this
+	ExpiresAt   time.Time
+	StaleAt     time.Time // ISR: serve stale while revalidating after this
 }
 
 func (e Entry) Expired() bool {
@@ -47,16 +50,44 @@ type Options struct {
 	RedisURL string
 }
 
+// DriverFunc constructs a Store from Options.
+type DriverFunc func(opts Options) (Store, error)
+
+var (
+	driversMu sync.RWMutex
+	drivers   = map[string]DriverFunc{}
+)
+
+// Register adds a named cache driver (e.g. "redis" via irmik/cache/redisx).
+// Later registrations for the same name replace the previous factory.
+func Register(name string, fn DriverFunc) {
+	name = strings.ToLower(strings.TrimSpace(name))
+	if name == "" || fn == nil {
+		return
+	}
+	driversMu.Lock()
+	drivers[name] = fn
+	driversMu.Unlock()
+}
+
 // New creates a Store from Options.
+// Built-in: memory (default), disk. Redis requires blank-importing irmik/cache/redisx.
 func New(opts Options) (Store, error) {
-	switch opts.Driver {
+	switch d := strings.ToLower(strings.TrimSpace(opts.Driver)); d {
 	case "", "memory":
 		return NewMemory(), nil
 	case "disk":
 		return NewDisk(opts.DiskDir)
-	case "redis":
-		return NewRedis(opts.RedisURL)
 	default:
+		driversMu.RLock()
+		fn, ok := drivers[d]
+		driversMu.RUnlock()
+		if ok {
+			return fn(opts)
+		}
+		if d == "redis" {
+			return nil, fmt.Errorf("cache: redis driver not registered; blank-import github.com/boracomet/go-irmik/irmik/cache/redisx")
+		}
 		return NewMemory(), nil
 	}
 }

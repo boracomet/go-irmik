@@ -21,6 +21,13 @@ import (
 	"github.com/boracomet/go-irmik/irmik/cache"
 	"github.com/boracomet/go-irmik/irmik/config"
 	"github.com/boracomet/go-irmik/irmik/router"
+
+	// CLI links optional drivers so cache clear / migrate work without app blank-imports.
+	_ "github.com/boracomet/go-irmik/irmik/cache/redisx"
+	_ "github.com/boracomet/go-irmik/irmik/db/mysql"
+	_ "github.com/boracomet/go-irmik/irmik/db/postgres"
+	_ "github.com/boracomet/go-irmik/irmik/db/sqlite"
+	_ "github.com/boracomet/go-irmik/irmik/session/redisx"
 )
 
 // Execute runs the root command.

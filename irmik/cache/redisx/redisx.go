@@ -1,13 +1,38 @@
-package cache
+// Package redisx registers a Redis-backed cache.Store.
+//
+// Blank-import to enable cache.New with Driver "redis":
+//
+//	import _ "github.com/boracomet/go-irmik/irmik/cache/redisx"
+//
+// Or call Register() explicitly. The core irmik/cache package stays free of go-redis.
+package redisx
 
 import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/redis/go-redis/v9"
+
+	"github.com/boracomet/go-irmik/irmik/cache"
 )
+
+var registerOnce sync.Once
+
+func init() {
+	Register()
+}
+
+// Register wires the "redis" driver into cache.New. Safe to call multiple times.
+func Register() {
+	registerOnce.Do(func() {
+		cache.Register("redis", func(opts cache.Options) (cache.Store, error) {
+			return New(opts.RedisURL)
+		})
+	})
+}
 
 type redisStore struct {
 	client *redis.Client
@@ -20,8 +45,8 @@ type redisEntry struct {
 	StaleAt     int64  `json:"staleAt"`
 }
 
-// NewRedis returns a Redis-backed Store. redisURL may be empty (defaults to redis://localhost:6379/0).
-func NewRedis(redisURL string) (Store, error) {
+// New returns a Redis-backed Store. redisURL may be empty (defaults to redis://localhost:6379/0).
+func New(redisURL string) (cache.Store, error) {
 	if redisURL == "" {
 		redisURL = "redis://localhost:6379/0"
 	}
@@ -39,27 +64,27 @@ func NewRedis(redisURL string) (Store, error) {
 	return &redisStore{client: client}, nil
 }
 
-func (s *redisStore) Get(ctx context.Context, key string) (Entry, error) {
+func (s *redisStore) Get(ctx context.Context, key string) (cache.Entry, error) {
 	data, err := s.client.Get(ctx, redisKey(key)).Bytes()
 	if err != nil {
 		if err == redis.Nil {
-			return Entry{}, ErrMiss
+			return cache.Entry{}, cache.ErrMiss
 		}
-		return Entry{}, err
+		return cache.Entry{}, err
 	}
 	var re redisEntry
 	if err := json.Unmarshal(data, &re); err != nil {
-		return Entry{}, err
+		return cache.Entry{}, err
 	}
 	e := entryFromRedis(re)
 	if e.Expired() {
 		_ = s.Delete(ctx, key)
-		return Entry{}, ErrMiss
+		return cache.Entry{}, cache.ErrMiss
 	}
 	return e, nil
 }
 
-func (s *redisStore) Set(ctx context.Context, key string, entry Entry) error {
+func (s *redisStore) Set(ctx context.Context, key string, entry cache.Entry) error {
 	re := redisFromEntry(entry)
 	data, err := json.Marshal(re)
 	if err != nil {
@@ -108,7 +133,7 @@ func redisKey(key string) string {
 	return "irmik:cache:" + key
 }
 
-func redisFromEntry(e Entry) redisEntry {
+func redisFromEntry(e cache.Entry) redisEntry {
 	re := redisEntry{
 		Body:        e.Body,
 		ContentType: e.ContentType,
@@ -122,16 +147,16 @@ func redisFromEntry(e Entry) redisEntry {
 	return re
 }
 
-func entryFromRedis(re redisEntry) Entry {
-	e := Entry{
+func entryFromRedis(re redisEntry) cache.Entry {
+	e := cache.Entry{
 		Body:        re.Body,
 		ContentType: re.ContentType,
 	}
 	if re.ExpiresAt != 0 {
-		e.ExpiresAt = unixNano(re.ExpiresAt)
+		e.ExpiresAt = time.Unix(0, re.ExpiresAt)
 	}
 	if re.StaleAt != 0 {
-		e.StaleAt = unixNano(re.StaleAt)
+		e.StaleAt = time.Unix(0, re.StaleAt)
 	}
 	return e
 }

@@ -6,6 +6,8 @@ import (
 
 	"github.com/boracomet/go-irmik/irmik/db"
 	"github.com/boracomet/go-irmik/irmik/db/gormx"
+
+	_ "github.com/boracomet/go-irmik/irmik/db/sqlite"
 )
 
 func TestOpenSQLite(t *testing.T) {

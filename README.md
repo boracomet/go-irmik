@@ -10,16 +10,17 @@
 
 | Area | What you get |
 |------|----------------|
-| **HTTP** | Gin engine, recovery, request ID, `/health` + `/ready` |
+| **HTTP** | Gin engine, recovery, request ID, security headers, `/health` + `/ready` |
 | **Routing** | `app/**/page.html` + `_meta.yaml`; `[slug]` → `:slug` |
 | **Modes** | SSR, SSG, ISR (TTL + stale revalidate), Static, CSR |
 | **Templates** | Layouts, partials, `tmplfunc` helpers (`dict`, `slugify`, …) |
 | **Islands** | `{{ island "Counter" … }}` via Vite + React |
 | **Content** | `content/<collection>/**/*.md` + frontmatter (goldmark) |
 | **SEO** | Title/OG/Twitter/JSON-LD helpers, `sitemap.xml`, `robots.txt` |
-| **Cache** | Memory / disk / Redis; ISR keys; `irmik cache clear` |
-| **Data** | `irmik/db` (pgx / sqlite / mysql) + `irmik/migrate` + optional GORM helper |
+| **Cache** | Memory / disk by default; Redis via `irmik/cache/redisx` |
+| **Data** | `irmik/db` + opt-in drivers (`db/sqlite`, `db/postgres`, `db/mysql`) + migrate + optional GORM |
 | **Auth** | Sessions, CSRF, JWT, passwords, RBAC, OAuth provider stubs ([docs/auth.md](docs/auth.md)) |
+| **Security** | Headers by default; rate limit via `EnableSecureDefaults` ([docs/security.md](docs/security.md)) |
 | **Realtime** | SSE (`irmik/sse`) + WebSocket hub/rooms (`irmik/ws`) ([docs/realtime.md](docs/realtime.md)) |
 | **CLI** | `dev`, `build`, `generate`, `start`, `cache clear`, `migrate` |
 
@@ -123,7 +124,11 @@ irmik migrate up|down|status|create <name>
 
 ## Database (Phase 2.2)
 
-SQL via `database/sql` (postgres/pgx, sqlite/modernc, mysql) and golang-migrate–compatible files under `migrations/`. See [docs/database.md](docs/database.md).
+SQL via `database/sql` and golang-migrate–compatible files under `migrations/`. Drivers are **opt-in** blank-imports — see [docs/database.md](docs/database.md).
+
+```go
+import _ "github.com/boracomet/go-irmik/irmik/db/sqlite" // or postgres / mysql
+```
 
 ```yaml
 # irmik.yaml
@@ -138,6 +143,24 @@ irmik migrate create add_users
 irmik migrate up
 irmik migrate status
 ```
+
+## Security
+
+Baseline headers ship with `irmik.New`. Admin apps should also call `app.EnableSecureDefaults()` (rate limit) and use CSRF for cookie sessions. Details: [docs/security.md](docs/security.md).
+
+## Lean linking (optional drivers)
+
+Heavy optional backends are **not** linked until you import them:
+
+| Need | Import |
+|------|--------|
+| Cache Redis | `_ "github.com/boracomet/go-irmik/irmik/cache/redisx"` |
+| Session Redis | `_ "github.com/boracomet/go-irmik/irmik/session/redisx"` |
+| SQLite | `_ "github.com/boracomet/go-irmik/irmik/db/sqlite"` |
+| Postgres | `_ "github.com/boracomet/go-irmik/irmik/db/postgres"` |
+| MySQL | `_ "github.com/boracomet/go-irmik/irmik/db/mysql"` |
+
+`cache.New` / `session.New` with `driver: redis` without the matching blank-import returns a clear error. Memory/disk cache and memory sessions need no extra import.
 
 ## Realtime (Phase 2.3)
 
@@ -184,6 +207,20 @@ Fully wired demos:
 | **2.1 Auth stack** | Done | [docs/auth.md](docs/auth.md) |
 | **2.2 Database / migrations** | Done | [docs/database.md](docs/database.md) |
 | **2.3 Realtime (SSE + WebSocket)** | Done | [docs/realtime.md](docs/realtime.md) |
+| **Lean linking + security defaults** | Done | [docs/security.md](docs/security.md), lean linking above |
+
+## Changelog notes
+
+### Lean linking (breaking for Redis / multi-driver apps)
+
+- `irmik/cache` and `irmik/session` no longer embed Redis. Blank-import `cache/redisx` / `session/redisx` (or call `Register()`).
+- `irmik/db` no longer blank-imports mysql + pgx + sqlite together. Import `irmik/db/sqlite`, `postgres`, or `mysql` explicitly.
+- Shims that would re-link Redis into core were **not** kept; use the packages above.
+
+### Security defaults
+
+- `irmik.New` always mounts baseline security headers (HSTS in production).
+- `EnableSecureDefaults()` / `EnableRateLimit()` for in-memory rate limiting; `middleware.LoginRateLimit` for auth routes.
 
 ## Roadmap (later)
 

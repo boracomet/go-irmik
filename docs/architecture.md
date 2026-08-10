@@ -28,11 +28,13 @@ Irmik is a thin meta-framework around Gin. The public SDK lives under `irmik/`; 
 | `irmik/island` | Vite manifest / dev URLs |
 | `irmik/content` | Markdown + frontmatter |
 | `irmik/seo` | Head tags, sitemap, robots |
-| `irmik/cache` | memory / disk / redis |
-| `irmik/db`, `irmik/migrate`, `irmik/db/gormx` | SQL open + migrations (+ optional GORM) |
+| `irmik/cache` | memory / disk; Redis via `cache/redisx` |
+| `irmik/db`, `db/sqlite|postgres|mysql`, `migrate`, `gormx` | SQL open (opt-in drivers) + migrations (+ optional GORM) |
 | `irmik/validate` | Struct validation + Gin bind helpers |
-| `irmik/session`, `irmik/csrf` | Cookie sessions + CSRF |
+| `irmik/session`, `session/redisx`, `csrf` | Cookie sessions (+ optional Redis) + CSRF |
 | `irmik/auth`, `irmik/rbac` | Login/JWT/passwords/OAuth stubs + RBAC |
+| `irmik/middleware` | Recovery, request ID, health, secure headers, rate limit |
+| `irmik/sse`, `irmik/ws` | SSE + WebSocket hubs |
 | `irmik/config` | `irmik.yaml` + env |
 | `irmik/plugin` | before/after start/build/stop hooks |
 | `irmik/tmplfunc`, `slug`, `fsutil` | shared helpers (StatiGo-inspired) |

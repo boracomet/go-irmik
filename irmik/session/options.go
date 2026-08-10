@@ -4,20 +4,48 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 )
 
-// New creates a Store from Options (memory or redis).
+// DriverFunc constructs a Store from Options.
+type DriverFunc func(opts Options) (Store, error)
+
+var (
+	driversMu sync.RWMutex
+	drivers   = map[string]DriverFunc{}
+)
+
+// Register adds a named session driver (e.g. "redis" via irmik/session/redisx).
+// Later registrations for the same name replace the previous factory.
+func Register(name string, fn DriverFunc) {
+	name = strings.ToLower(strings.TrimSpace(name))
+	if name == "" || fn == nil {
+		return
+	}
+	driversMu.Lock()
+	drivers[name] = fn
+	driversMu.Unlock()
+}
+
+// New creates a Store from Options (memory by default; redis via redisx).
 func New(opts Options) (Store, error) {
 	if opts.Store != nil {
 		return opts.Store, nil
 	}
-	switch strings.ToLower(strings.TrimSpace(opts.Driver)) {
+	switch d := strings.ToLower(strings.TrimSpace(opts.Driver)); d {
 	case "", "memory":
 		return NewMemory(), nil
-	case "redis":
-		return NewRedis(opts.RedisURL)
 	default:
+		driversMu.RLock()
+		fn, ok := drivers[d]
+		driversMu.RUnlock()
+		if ok {
+			return fn(opts)
+		}
+		if d == "redis" {
+			return nil, fmt.Errorf("session: redis driver not registered; blank-import github.com/boracomet/go-irmik/irmik/session/redisx")
+		}
 		return nil, fmt.Errorf("session: unknown driver %q", opts.Driver)
 	}
 }

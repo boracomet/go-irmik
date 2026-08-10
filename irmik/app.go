@@ -72,6 +72,20 @@ func New(cfg config.Config) (*App, error) {
 	engine := gin.New()
 	engine.Use(middleware.Recovery(), middleware.RequestID())
 
+	// Cheap baseline headers are on by default; rate limit stays opt-in.
+	sec := middleware.DefaultSecureHeaders()
+	if !cfg.IsDev() {
+		sec.HSTSMaxAge = 31536000
+		sec.HSTSIncludeSubdomains = true
+	}
+	engine.Use(middleware.SecureHeaders(sec))
+
+	if len(cfg.Server.TrustedProxies) > 0 {
+		if err := engine.SetTrustedProxies(cfg.Server.TrustedProxies); err != nil {
+			return nil, fmt.Errorf("irmik: trustedProxies: %w", err)
+		}
+	}
+
 	app := &App{
 		Config:  cfg,
 		Engine:  engine,
@@ -81,6 +95,26 @@ func New(cfg config.Config) (*App, error) {
 
 	middleware.Health(engine, app.Ready)
 	return app, nil
+}
+
+// EnableSecureDefaults turns on admin-oriented protections beyond baseline headers:
+// global in-memory rate limiting. Pair with csrf.Middleware for browser form/admin UIs.
+// Headers are already applied in New; production also gets HSTS.
+func (a *App) EnableSecureDefaults() {
+	a.EnableRateLimit(middleware.DefaultRateLimit())
+}
+
+// EnableRateLimit mounts an in-memory token-bucket limiter (per ClientIP by default).
+// For login/auth routes, prefer middleware.LoginRateLimit on those routes instead of
+// (or in addition to) a loose global limit.
+func (a *App) EnableRateLimit(cfg middleware.RateLimitConfig) {
+	a.Engine.Use(middleware.RateLimit(cfg))
+}
+
+// EnableSecureHeaders remounts security headers with a custom config
+// (e.g. CSP frame-ancestors). Prefer calling early after New.
+func (a *App) EnableSecureHeaders(cfg middleware.SecureHeadersConfig) {
+	a.Engine.Use(middleware.SecureHeaders(cfg))
 }
 
 // EnableSessions constructs a session.Manager from cfg.Session and mounts

@@ -5,7 +5,7 @@ Irmik’s auth layer is optional and thin: enable what you need on `irmik.App`, 
 | Package | Role |
 |---------|------|
 | [`irmik/validate`](../irmik/validate) | Struct/tag validation + Gin `BindJSON` / `BindForm` |
-| [`irmik/session`](../irmik/session) | Cookie sessions (memory / redis), flash, middleware |
+| [`irmik/session`](../irmik/session) | Cookie sessions (memory default; redis via `session/redisx`), flash, middleware |
 | [`irmik/csrf`](../irmik/csrf) | CSRF token in session; validate header/form on unsafe methods |
 | [`irmik/auth`](../irmik/auth) | Session login/logout, JWT HS256, password hash (argon2id/bcrypt), OAuth `Provider` |
 | [`irmik/rbac`](../irmik/rbac) | In-memory roles → permissions + `RequireRole` / `RequirePermission` |
@@ -14,7 +14,7 @@ Irmik’s auth layer is optional and thin: enable what you need on `irmik.App`, 
 
 ```yaml
 session:
-  driver: memory   # or redis
+  driver: memory   # or redis (requires blank-import irmik/session/redisx)
   name: irmik_session
   maxAge: 24h
   sameSite: lax
@@ -28,17 +28,28 @@ auth:
 
 Env: `IRMIK_SESSION_DRIVER`, `IRMIK_SESSION_SECRET`, `IRMIK_SESSION_REDIS_URL`, `IRMIK_JWT_SECRET`, `IRMIK_JWT_ISSUER`, `REDIS_URL`.
 
+### Redis sessions
+
+Core `irmik/session` does **not** link go-redis. Enable Redis with:
+
+```go
+import _ "github.com/boracomet/go-irmik/irmik/session/redisx"
+```
+
+Then set `session.driver: redis` (or call `redisx.Register()` explicitly).
+
 ## Wiring
 
 ```go
-app, _ := irmik.New(cfg)
+app, _ := irmik.New(cfg)          // security headers on by default
+app.EnableSecureDefaults()        // admin: global rate limit (see docs/security.md)
 _ = app.EnableSessions()          // mounts session middleware
 a := app.EnableAuth()             // JWT + session helpers
 
 app.Engine.Use(a.InjectSessionUser(lookupByID))
 app.Engine.Use(csrf.Middleware(csrf.Options{}))
 
-app.Engine.POST("/login", func(c *gin.Context) {
+app.Engine.POST("/login", middleware.LoginRateLimit(), func(c *gin.Context) {
     // validate.BindJSON → auth.CheckPassword → a.LoginSession(c, user)
 })
 app.Engine.GET("/me", a.RequireAuthSession(), handler)
@@ -47,6 +58,8 @@ app.Engine.GET("/api/me", a.RequireJWT(), handler)
 ```
 
 `irmik.Context` exposes `Session()` and `User()` when using `irmik.Wrap` / loaders.
+
+For admin UIs, pair CSRF with [secure defaults](security.md) (`EnableSecureDefaults`, login rate limit, HTTPS/HSTS).
 
 ## Passwords
 

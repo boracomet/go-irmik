@@ -7,6 +7,8 @@ import (
 
 	"github.com/boracomet/go-irmik/irmik/db"
 	"github.com/boracomet/go-irmik/irmik/migrate"
+
+	_ "github.com/boracomet/go-irmik/irmik/db/sqlite"
 )
 
 func writeMigrations(t *testing.T, dir string) {

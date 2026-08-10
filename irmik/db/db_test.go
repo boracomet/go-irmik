@@ -7,6 +7,8 @@ import (
 
 	"github.com/boracomet/go-irmik/irmik/config"
 	"github.com/boracomet/go-irmik/irmik/db"
+
+	_ "github.com/boracomet/go-irmik/irmik/db/sqlite"
 )
 
 func TestOpenSQLiteTempFile(t *testing.T) {
@@ -57,5 +59,13 @@ func TestOpenRejectsUnknownDriver(t *testing.T) {
 	_, err := db.Open(db.Options{Driver: "oracle", DSN: "x"})
 	if err == nil {
 		t.Fatal("expected error for unknown driver")
+	}
+}
+
+func TestOpenRejectsUnregisteredDriver(t *testing.T) {
+	// mysql package is not blank-imported in this test file.
+	_, err := db.Open(db.Options{Driver: "mysql", DSN: "user:pass@tcp(127.0.0.1:3306)/db"})
+	if err == nil {
+		t.Fatal("expected error when mysql driver is not registered")
 	}
 }

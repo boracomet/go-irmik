@@ -39,6 +39,9 @@ type ServerConfig struct {
 	ReadTimeout     time.Duration `yaml:"readTimeout"`
 	WriteTimeout    time.Duration `yaml:"writeTimeout"`
 	ShutdownTimeout time.Duration `yaml:"shutdownTimeout"`
+	// TrustedProxies are CIDRs/IPs passed to gin.Engine.SetTrustedProxies
+	// so ClientIP (rate limit, etc.) honors X-Forwarded-For from those hops.
+	TrustedProxies []string `yaml:"trustedProxies"`
 }
 
 type CacheConfig struct {
