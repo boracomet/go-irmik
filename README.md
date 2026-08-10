@@ -2,7 +2,7 @@
 
 **Irmik** is a Next.js-inspired meta-framework for Go. It sits on [Gin](https://github.com/gin-gonic/gin) and gives you file-based routing, route-level rendering modes (SSR / SSG / ISR / Static / CSR), `html/template` pages, React/Vite islands, Markdown content collections, a small CLI, and an optional SQL data stack — without dragging in a full CMS.
 
-> **Türkçe özet:** Irmik, Gin üzerine kurulu, dosya tabanlı rotalar ve SSR/SSG/ISR modları sunan bir meta-framework’tür. Sayfalar `html/template`, etkileşimli parçalar React/Vite islands, içerik Markdown koleksiyonlarıdır. Phase 2.1 auth/session; Phase 2.2 SQL/migration.
+> **Türkçe özet:** Irmik, Gin üzerine kurulu, dosya tabanlı rotalar ve SSR/SSG/ISR modları sunan bir meta-framework’tür. Sayfalar `html/template`, etkileşimli parçalar React/Vite islands, içerik Markdown koleksiyonlarıdır. Phase 2.1 auth/session; Phase 2.2 SQL/migration; Phase 2.3 SSE/WebSocket.
 
 **Module:** [`github.com/boracomet/go-irmik`](https://github.com/boracomet/go-irmik)
 
@@ -20,6 +20,7 @@
 | **Cache** | Memory / disk / Redis; ISR keys; `irmik cache clear` |
 | **Data** | `irmik/db` (pgx / sqlite / mysql) + `irmik/migrate` + optional GORM helper |
 | **Auth** | Sessions, CSRF, JWT, passwords, RBAC, OAuth provider stubs ([docs/auth.md](docs/auth.md)) |
+| **Realtime** | SSE (`irmik/sse`) + WebSocket hub/rooms (`irmik/ws`) ([docs/realtime.md](docs/realtime.md)) |
 | **CLI** | `dev`, `build`, `generate`, `start`, `cache clear`, `migrate` |
 
 ## Quick start
@@ -138,6 +139,17 @@ irmik migrate up
 irmik migrate status
 ```
 
+## Realtime (Phase 2.3)
+
+SSE and WebSocket helpers for Gin. Set `server.writeTimeout: 0` for long-lived connections. See [docs/realtime.md](docs/realtime.md).
+
+```go
+app.Engine.GET("/events", sse.Handler(sse.Options{Heartbeat: 15 * time.Second}, fn))
+hub := ws.NewHub(ws.Options{AllowedOrigins: cfg.Realtime.AllowedOrigins})
+hub.Start()
+app.Engine.GET("/ws", hub.ServeHTTP)
+```
+
 ## Architecture
 
 ```mermaid
@@ -163,6 +175,7 @@ Fully wired demos:
 
 - [`examples/blog`](examples/blog) — SSR home, SSG about, ISR posts, Counter island
 - [`examples/auth`](examples/auth) — session login, CSRF, JWT, RBAC
+- [`examples/realtime`](examples/realtime) — SSE clock/stream, WebSocket echo + chat room
 
 ## Phase 2 status
 
@@ -170,6 +183,7 @@ Fully wired demos:
 |------|--------|------|
 | **2.1 Auth stack** | Done | [docs/auth.md](docs/auth.md) |
 | **2.2 Database / migrations** | Done | [docs/database.md](docs/database.md) |
+| **2.3 Realtime (SSE + WebSocket)** | Done | [docs/realtime.md](docs/realtime.md) |
 
 ## Roadmap (later)
 

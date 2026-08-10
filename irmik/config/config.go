@@ -24,6 +24,7 @@ type Config struct {
 	I18n     I18nConfig     `yaml:"i18n"`
 	Session  SessionConfig  `yaml:"session"`
 	Auth     AuthConfig     `yaml:"auth"`
+	Realtime RealtimeConfig `yaml:"realtime"`
 }
 
 type AppConfig struct {
@@ -96,6 +97,13 @@ type AuthConfig struct {
 	JWTSecret string        `yaml:"jwtSecret"`
 	JWTIssuer string        `yaml:"jwtIssuer"`
 	AccessTTL time.Duration `yaml:"accessTTL"`
+}
+
+// RealtimeConfig holds optional WebSocket / SSE settings (Phase 2.3).
+type RealtimeConfig struct {
+	// AllowedOrigins lists exact Origin values for WebSocket upgrades.
+	// Empty allows all origins (fine for local demos; restrict in production).
+	AllowedOrigins []string `yaml:"allowedOrigins"`
 }
 
 // DatabaseConfig holds SQL connection and migration settings (Phase 2.2).
@@ -187,6 +195,7 @@ func Default() Config {
 			JWTIssuer: "irmik",
 			AccessTTL: 15 * time.Minute,
 		},
+		Realtime: RealtimeConfig{},
 	}
 }
 
@@ -285,6 +294,19 @@ func applyEnv(cfg *Config) {
 	if v := os.Getenv("IRMIK_DB_MAX_IDLE"); v != "" {
 		if n, err := strconv.Atoi(v); err == nil {
 			cfg.Database.MaxIdleConns = n
+		}
+	}
+	if v := os.Getenv("IRMIK_WS_ALLOWED_ORIGINS"); v != "" {
+		parts := strings.Split(v, ",")
+		origins := make([]string, 0, len(parts))
+		for _, p := range parts {
+			p = strings.TrimSpace(p)
+			if p != "" {
+				origins = append(origins, p)
+			}
+		}
+		if len(origins) > 0 {
+			cfg.Realtime.AllowedOrigins = origins
 		}
 	}
 }

@@ -1,0 +1,22 @@
+app:
+  name: irmik-realtime
+  env: development
+  baseURL: http://127.0.0.1:8080
+
+server:
+  host: 127.0.0.1
+  port: 8080
+  readTimeout: 0s
+  writeTimeout: 0s
+  shutdownTimeout: 5s
+
+cache:
+  driver: memory
+
+realtime:
+  allowedOrigins:
+    - http://127.0.0.1:8080
+    - http://localhost:8080
+
+islands:
+  enabled: false
