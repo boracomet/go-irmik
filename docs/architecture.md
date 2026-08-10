@@ -44,6 +44,6 @@ Irmik is a thin meta-framework around Gin. The public SDK lives under `irmik/`; 
 
 Primary file: `irmik.yaml` (`app`, `server`, `cache`, `database`, `session`, `auth`, `build`, `content`, `seo`, `islands`, `i18n`). Env overrides: `IRMIK_ENV`, `IRMIK_BASE_URL`, `IRMIK_PORT`, `IRMIK_CACHE_DRIVER`, `REDIS_URL`, `DATABASE_URL`, `IRMIK_JWT_SECRET`, `IRMIK_SESSION_DRIVER`, …
 
-## Non-goals (Phase 1)
+## Non-goals (core)
 
-Queues, OpenAPI, gRPC, full i18n URL maps, Brotli dual-write, minify-on-serve — deferred. Auth landed in Phase 2.1 ([docs/auth.md](auth.md)); database in Phase 2.2 ([docs/database.md](database.md)).
+Full i18n URL maps, minify-on-serve, and a DI container are out of scope for the thin core. Opt-in platform packages (upload, storage, queue, openapi, grpcx, observe, …) live beside the core — see [catalog.md](catalog.md). Auth: [auth.md](auth.md); database: [database.md](database.md); realtime: [realtime.md](realtime.md).
