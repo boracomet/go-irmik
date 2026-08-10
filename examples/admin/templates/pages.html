@@ -1,0 +1,110 @@
+{{define "page_login"}}
+<div class="login-card">
+  <h1>Sign in</h1>
+  <p class="muted">Demo: admin@example.com / password123</p>
+  {{if .Error}}<p class="flash flash-error">{{.Error}}</p>{{end}}
+  <form method="post" action="/login">
+    {{.CSRF}}
+    <label>
+      <span>Email</span>
+      <input type="email" name="email" value="{{.Email}}" required />
+    </label>
+    <label>
+      <span>Password</span>
+      <input type="password" name="password" required minlength="8" />
+    </label>
+    <button type="submit">Sign in</button>
+  </form>
+</div>
+{{end}}
+
+{{define "page_home"}}
+<section>
+  <h1>Admin + API kit</h1>
+  <p>Session-backed HTMX admin for <a href="/admin/items">Items</a>, plus JWT REST at <code>/api/v1/items</code>.</p>
+  <p class="muted">Get a token: <code>POST /api/v1/token</code> with email/password JSON.</p>
+</section>
+{{end}}
+
+{{define "items_list_partial"}}
+<section class="irmik-admin-list" id="irmik-admin-list">
+  <header class="list-header">
+    <h1>Items</h1>
+    <a class="btn" href="/admin/items/new"
+       hx-get="/admin/items/new" hx-target="#irmik-admin-main" hx-push-url="true">New</a>
+  </header>
+  <form class="list-search" method="get" action="/admin/items"
+        hx-get="/admin/items" hx-target="#irmik-admin-list" hx-push-url="true"
+        hx-trigger="submit, keyup changed delay:300ms from:input[name=q]">
+    <input type="search" name="q" value="{{.Q}}" placeholder="Search…" style="flex:1" />
+    <button type="submit">Search</button>
+  </form>
+  {{if not .Items}}
+  <p class="empty">No items yet.</p>
+  {{else}}
+  <table class="admin-table">
+    <thead>
+      <tr><th>ID</th><th>Title</th><th>Updated</th><th></th></tr>
+    </thead>
+    <tbody>
+      {{range .Items}}
+      <tr id="row-{{.ID}}">
+        <td>{{.ID}}</td>
+        <td>{{.Title}}</td>
+        <td class="muted">{{.UpdatedAt.Format "2006-01-02 15:04"}}</td>
+        <td class="actions">
+          <a href="/admin/items/{{.ID}}/edit"
+             hx-get="/admin/items/{{.ID}}/edit" hx-target="#irmik-admin-main" hx-push-url="true">Edit</a>
+          <a href="/admin/items/{{.ID}}/delete"
+             hx-get="/admin/items/{{.ID}}/delete" hx-target="#irmik-admin-main">Delete</a>
+        </td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+  <p class="muted">Page {{.PageNum}} · {{.Total}} total</p>
+  {{end}}
+</section>
+{{end}}
+
+{{define "items_form_partial"}}
+<section class="irmik-admin-form">
+  <h1>{{.FormTitle}}</h1>
+  {{if .Errors}}
+  <ul class="form-errors">
+    {{range $f, $msgs := .Errors}}{{range $msgs}}<li><strong>{{$f}}</strong>: {{.}}</li>{{end}}{{end}}
+  </ul>
+  {{end}}
+  <form method="post" action="{{.Action}}"
+        hx-post="{{.Action}}" hx-target="#irmik-admin-main" hx-push-url="true">
+    {{.CSRF}}
+    <label>
+      <span>Title *</span>
+      <input type="text" name="title" value="{{.Item.Title}}" required />
+    </label>
+    <label>
+      <span>Body</span>
+      <textarea name="body" rows="5">{{.Item.Body}}</textarea>
+    </label>
+    <div class="form-actions">
+      <button type="submit">Save</button>
+      <a href="/admin/items" hx-get="/admin/items" hx-target="#irmik-admin-main" hx-push-url="true">Cancel</a>
+    </div>
+  </form>
+</section>
+{{end}}
+
+{{define "items_delete_partial"}}
+<section class="irmik-admin-confirm">
+  <h1>Delete item</h1>
+  <p>Delete <strong>{{.Item.Title}}</strong>? This cannot be undone.</p>
+  <form method="post" action="/admin/items/{{.Item.ID}}/delete"
+        hx-post="/admin/items/{{.Item.ID}}/delete" hx-target="#irmik-admin-main" hx-push-url="true">
+    {{.CSRF}}
+    <div class="form-actions">
+      <button type="submit" class="btn-danger">Delete</button>
+      <a href="/admin/items" hx-get="/admin/items" hx-target="#irmik-admin-main" hx-push-url="true">Cancel</a>
+    </div>
+  </form>
+</section>
+{{end}}

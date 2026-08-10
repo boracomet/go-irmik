@@ -1,0 +1,45 @@
+{{define "form.html"}}
+{{/*
+  Admin form partial.
+  Expected data:
+    .Title   string
+    .Action  string   — form action URL
+    .Method  string   — POST (use _method for PUT/PATCH/DELETE if needed)
+    .CSRF    template.HTML
+    .Fields  []map[string]any — name, label, type, value, required
+    .Cancel  string   — cancel URL
+    .Submit  string   — button label
+    .Errors  map[string][]string
+    .HX      bool
+*/}}
+<section class="irmik-admin-form" id="irmik-admin-form">
+  <h1>{{.Title}}</h1>
+  {{if .Errors}}
+  <ul class="form-errors">
+    {{range $field, $msgs := .Errors}}
+      {{range $msgs}}<li><strong>{{$field}}</strong>: {{.}}</li>{{end}}
+    {{end}}
+  </ul>
+  {{end}}
+  <form method="{{or .Method "POST"}}" action="{{.Action}}"
+        {{if .HX}}hx-post="{{.Action}}" hx-target="#irmik-admin-main" hx-push-url="true"{{end}}>
+    {{.CSRF}}
+    {{range .Fields}}
+    <label>
+      <span>{{.label}}{{if .required}} *{{end}}</span>
+      {{if eq .type "textarea"}}
+      <textarea name="{{.name}}" {{if .required}}required{{end}}>{{.value}}</textarea>
+      {{else}}
+      <input type="{{or .type "text"}}" name="{{.name}}" value="{{.value}}" {{if .required}}required{{end}} />
+      {{end}}
+    </label>
+    {{end}}
+    <div class="form-actions">
+      <button type="submit">{{or .Submit "Save"}}</button>
+      {{if .Cancel}}
+      <a href="{{.Cancel}}" {{if .HX}}hx-get="{{.Cancel}}" hx-target="#irmik-admin-main" hx-push-url="true"{{end}}>Cancel</a>
+      {{end}}
+    </div>
+  </form>
+</section>
+{{end}}

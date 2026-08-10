@@ -1,0 +1,26 @@
+{{define "confirm_delete.html"}}
+{{/*
+  Delete confirmation partial.
+  Expected data:
+    .Title   string
+    .Message string
+    .Action  string  — POST delete URL
+    .Cancel  string
+    .CSRF    template.HTML
+    .HX      bool
+*/}}
+<section class="irmik-admin-confirm" id="irmik-admin-confirm">
+  <h1>{{or .Title "Confirm delete"}}</h1>
+  <p>{{or .Message "Are you sure you want to delete this record? This cannot be undone."}}</p>
+  <form method="POST" action="{{.Action}}"
+        {{if .HX}}hx-post="{{.Action}}" hx-target="#irmik-admin-main" hx-push-url="true"{{end}}>
+    {{.CSRF}}
+    <div class="form-actions">
+      <button type="submit" class="btn-danger">Delete</button>
+      {{if .Cancel}}
+      <a href="{{.Cancel}}" {{if .HX}}hx-get="{{.Cancel}}" hx-target="#irmik-admin-main" hx-push-url="true"{{end}}>Cancel</a>
+      {{end}}
+    </div>
+  </form>
+</section>
+{{end}}

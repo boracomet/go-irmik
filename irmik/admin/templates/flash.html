@@ -1,0 +1,10 @@
+{{define "flash.html"}}
+{{/* Expects .Flash map[string]string with keys success|notice|error */}}
+{{if .Flash}}
+<div class="irmik-flash" id="irmik-flash" role="status">
+  {{with index .Flash "success"}}<p class="flash flash-success">{{.}}</p>{{end}}
+  {{with index .Flash "notice"}}<p class="flash flash-notice">{{.}}</p>{{end}}
+  {{with index .Flash "error"}}<p class="flash flash-error">{{.}}</p>{{end}}
+</div>
+{{end}}
+{{end}}

@@ -1,0 +1,55 @@
+{{define "list.html"}}
+{{/*
+  Admin table list partial.
+  Expected data:
+    .Title      string
+    .NewURL     string
+    .Q          string
+    .Columns    []string          — header labels
+    .Rows       []map[string]any  — each row: "id", "cells" ([]string), "edit_url", "delete_url"
+    .CSRF       template.HTML     — optional hidden input HTML
+    .Empty      string            — empty-state message
+*/}}
+<section class="irmik-admin-list" id="irmik-admin-list">
+  <header class="list-header">
+    <h1>{{.Title}}</h1>
+    {{if .NewURL}}
+    <a class="btn" href="{{.NewURL}}" {{if .HX}}hx-get="{{.NewURL}}" hx-target="#irmik-admin-main" hx-push-url="true"{{end}}>New</a>
+    {{end}}
+  </header>
+
+  <form class="list-search" method="get" action="{{.ListURL}}"
+        {{if .HX}}hx-get="{{.ListURL}}" hx-target="#irmik-admin-list" hx-push-url="true" hx-trigger="submit, keyup changed delay:300ms from:input[name=q]"{{end}}>
+    <input type="search" name="q" value="{{.Q}}" placeholder="Search…" />
+    <button type="submit">Search</button>
+  </form>
+
+  {{if not .Rows}}
+  <p class="empty">{{or .Empty "No records."}}</p>
+  {{else}}
+  <table class="admin-table">
+    <thead>
+      <tr>
+        {{range .Columns}}<th>{{.}}</th>{{end}}
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {{range .Rows}}
+      <tr id="row-{{.id}}">
+        {{range .cells}}<td>{{.}}</td>{{end}}
+        <td class="actions">
+          {{if .edit_url}}
+          <a href="{{.edit_url}}" {{if $.HX}}hx-get="{{.edit_url}}" hx-target="#irmik-admin-main" hx-push-url="true"{{end}}>Edit</a>
+          {{end}}
+          {{if .delete_url}}
+          <a href="{{.delete_url}}" {{if $.HX}}hx-get="{{.delete_url}}" hx-target="#irmik-admin-main"{{end}}>Delete</a>
+          {{end}}
+        </td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+  {{end}}
+</section>
+{{end}}
