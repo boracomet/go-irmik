@@ -29,7 +29,7 @@ Irmik keeps **`irmik.New` and the root `irmik` package thin**. Extra capabilitie
 | `irmik/plugin` | Lifecycle hooks |
 | `irmik/tmplfunc`, `slug`, `fsutil`, `meta`, `lifecycle` | Shared helpers |
 
-## Opt-in: auth & data (Phase 2)
+## Opt-in: auth & data
 
 | Package | Import | What gets linked |
 |---------|--------|------------------|

@@ -1,4 +1,4 @@
-# Database & migrations (Phase 2.2)
+# Database & migrations
 
 Irmik’s data stack is intentionally thin: `database/sql` plus versioned SQL files. ORM (GORM) is optional.
 

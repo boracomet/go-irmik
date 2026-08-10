@@ -1,4 +1,4 @@
-# Realtime: SSE & WebSocket (Phase 2.3)
+# Realtime: SSE & WebSocket
 
 Optional packages for long-lived connections on Gin. They do not auto-mount on `irmik.App` — register handlers on `app.Engine` like any other route.
 

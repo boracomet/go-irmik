@@ -98,3 +98,5 @@ Store the access token in an httpOnly cookie or server session — never expose 
 - Template `Can` hides New / Edit / Delete when the role lacks the permission
 - JWT `RequireJWT` on `/api/v1/items*`
 - SQLite via blank-import `irmik/db/sqlite` (in-memory by default); RBAC tables co-located
+
+**Demo-only:** JWT secret falls back to `dev-only-change-me-jwt-secret-32b` and session `Secure` is forced off for local HTTP. For real deploys set `IRMIK_JWT_SECRET`, enable Secure cookies, and use HTTPS — see [docs/security.md](../../docs/security.md).

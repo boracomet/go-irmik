@@ -1,6 +1,6 @@
 # Auth example
 
-Minimal Phase 2.1 demo: cookie sessions, CSRF, password login, JWT, RBAC.
+Minimal demo: cookie sessions, CSRF, password login, JWT, RBAC.
 
 ```bash
 cd examples/auth

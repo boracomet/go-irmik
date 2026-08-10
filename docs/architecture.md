@@ -1,4 +1,4 @@
-# Architecture (Phase 1)
+# Architecture
 
 Irmik is a thin meta-framework around Gin. The public SDK lives under `irmik/`; CLI and build tooling under `cmd/` and `internal/`.
 
@@ -18,7 +18,32 @@ Irmik is a thin meta-framework around Gin. The public SDK lives under `irmik/`; 
 4. Write `out/**/index.html`, seed ISR cache entries.
 5. Emit `sitemap.xml` + `robots.txt` through `irmik/seo`.
 
+## Layer diagram
+
+```mermaid
+flowchart TB
+  CLI["cmd/irmik"] --> App["irmik.App"]
+  App --> Engine["gin.Engine"]
+  App --> Router["irmik/router"]
+  App --> Render["irmik/render"]
+  App --> Cache["irmik/cache"]
+  App --> Content["irmik/content"]
+  App --> SEO["irmik/seo"]
+  Router --> Modes["SSR · SSG · ISR · Static · CSR"]
+  Render --> Islands["irmik/island + Vite"]
+  subgraph optin [Opt-in — import only]
+    Auth["auth · session · csrf · rbac"]
+    Data["db · migrate · gormx"]
+    RT["sse · ws"]
+    AdminAPI["admin · api · paginate · htmx"]
+    Catalog["upload · queue · mail · …"]
+  end
+  optin -.-> Engine
+```
+
 ## Packages
+
+### Core (used by a typical `irmik.New` app)
 
 | Package | Role |
 |---------|------|
@@ -29,21 +54,31 @@ Irmik is a thin meta-framework around Gin. The public SDK lives under `irmik/`; 
 | `irmik/content` | Markdown + frontmatter |
 | `irmik/seo` | Head tags, sitemap, robots |
 | `irmik/cache` | memory / disk; Redis via `cache/redisx` |
-| `irmik/db`, `db/sqlite|postgres|mysql`, `migrate`, `gormx` | SQL open (opt-in drivers) + migrations (+ optional GORM) |
-| `irmik/validate` | Struct validation + Gin bind helpers |
-| `irmik/session`, `session/redisx`, `csrf` | Cookie sessions (+ optional Redis) + CSRF |
-| `irmik/auth`, `irmik/rbac`, `rbac/store` | Login/JWT/passwords/OAuth stubs + RBAC (+ opt-in SQL store) |
 | `irmik/middleware` | Recovery, request ID, health, secure headers, rate limit |
-| `irmik/sse`, `irmik/ws` | SSE + WebSocket hubs |
 | `irmik/config` | `irmik.yaml` + env |
 | `irmik/plugin` | before/after start/build/stop hooks |
-| `irmik/tmplfunc`, `slug`, `fsutil` | shared helpers (StatiGo-inspired) |
+| `irmik/tmplfunc`, `slug`, `fsutil`, `meta`, `lifecycle` | shared helpers |
 | `internal/cli`, `internal/build`, `internal/hmr` | CLI plumbing |
+
+### Major opt-in (not linked until imported)
+
+| Package | Role | Docs |
+|---------|------|------|
+| `irmik/session`, `session/redisx`, `csrf` | Cookie sessions + CSRF | [auth.md](auth.md) |
+| `irmik/auth`, `irmik/rbac`, `rbac/store` | Login/JWT/passwords/OAuth stubs + RBAC | [auth.md](auth.md), [rbac.md](rbac.md) |
+| `irmik/db`, `db/sqlite\|postgres\|mysql`, `migrate`, `gormx` | SQL + migrations (+ optional GORM) | [database.md](database.md) |
+| `irmik/sse`, `irmik/ws` | SSE + WebSocket hubs | [realtime.md](realtime.md) |
+| `irmik/admin`, `api`, `paginate`, `htmx` | Admin UI + REST `/api/v1` | [admin.md](admin.md), [api.md](api.md) |
+| `irmik/validate`, `forms`, `cors`, `audit`, `health`, … | Platform helpers | [catalog.md](catalog.md) |
+
+Full module map: **[catalog.md](catalog.md)**.
 
 ## Config surface
 
-Primary file: `irmik.yaml` (`app`, `server`, `cache`, `database`, `session`, `auth`, `build`, `content`, `seo`, `islands`, `i18n`). Env overrides: `IRMIK_ENV`, `IRMIK_BASE_URL`, `IRMIK_PORT`, `IRMIK_CACHE_DRIVER`, `REDIS_URL`, `DATABASE_URL`, `IRMIK_JWT_SECRET`, `IRMIK_SESSION_DRIVER`, …
+Primary file: `irmik.yaml` (`app`, `server`, `cache`, `database`, `session`, `auth`, `build`, `content`, `seo`, `islands`, `i18n`, `realtime`). Env overrides: `IRMIK_ENV`, `IRMIK_BASE_URL`, `IRMIK_PORT`, `IRMIK_CACHE_DRIVER`, `REDIS_URL`, `DATABASE_URL`, `IRMIK_JWT_SECRET`, `IRMIK_SESSION_DRIVER`, …
 
 ## Non-goals (core)
 
-Full i18n URL maps, minify-on-serve, and a DI container are out of scope for the thin core. Opt-in platform packages (upload, storage, queue, openapi, grpcx, observe, …) live beside the core — see [catalog.md](catalog.md). Auth: [auth.md](auth.md); RBAC: [rbac.md](rbac.md); database: [database.md](database.md); realtime: [realtime.md](realtime.md).
+Full i18n URL maps, minify-on-serve, a DI container, GraphQL-in-core, and a mandatory CMS/admin generator are out of scope for the thin core. Opt-in platform packages live beside the core — see [catalog.md](catalog.md) and [roadmap.md](roadmap.md).
+
+Related: [auth.md](auth.md) · [rbac.md](rbac.md) · [database.md](database.md) · [realtime.md](realtime.md) · [admin.md](admin.md) · [api.md](api.md) · [security.md](security.md)

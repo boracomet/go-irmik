@@ -7,18 +7,29 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Go-1.26-00ADD8?logo=go&logoColor=white" alt="Go" />
   <img src="https://img.shields.io/badge/License-MIT-blue" alt="License MIT" />
+  <a href="https://pkg.go.dev/github.com/boracomet/go-irmik"><img src="https://pkg.go.dev/badge/github.com/boracomet/go-irmik.svg" alt="Go Reference" /></a>
 </p>
 
-**Irmik** is a Gin-based meta-framework for Go: **thin core**, **wide opt-in catalog**.  
-Use it for **admin / internal systems** and **SSR sites** that need security defaults and speed — without dragging a CMS or a megakit into every binary.
+**Irmik** is a Gin-based meta-framework for Go: a **thin core** plus a **wide opt-in catalog**.  
+It is built for **admin / internal systems** and **SSR sites** that want file routes, render modes, auth, SQL, and realtime — without a CMS or a megakit in every binary.
 
-**Primary path:** build an **admin UI + JWT API** with the [examples/admin](examples/admin) showcase (`irmik/admin`, `irmik/api`, `irmik/paginate`).
-
-You get file-based routing, route-level **SSR / SSG / ISR / Static / CSR**, `html/template` pages, React/Vite islands, Markdown content, auth, SQL/migrate, realtime, a small CLI, and platform helpers (upload, queue, mail, OpenAPI, …) that stay out of the link until you import them.
+**Primary product path:** [examples/admin](examples/admin) — session + HTMX admin UI and a JWT REST `/api/v1` API (`irmik/admin`, `irmik/api`, `irmik/paginate`, `irmik/rbac`). Ready for Next.js and other SPA clients.
 
 **Module:** [`github.com/boracomet/go-irmik`](https://github.com/boracomet/go-irmik)
 
 > **Türkçe özet:** Irmik, Gin üzerine kurulu bir meta-framework’tür. Çekirdek ince kalır; upload, kuyruk, mail, OpenAPI gibi parçalar **isteğe bağlı** paketlerdir. Dosya tabanlı rotalar, SSR/SSG/ISR, `html/template` + React/Vite islands, Markdown içerik, auth/session, SQL/migration, SSE/WebSocket ve admin güvenlik varsayılanları sunar. Hem iç sistem / admin panelleri hem de SSR siteler için uygundur. Karşılaştırma: [docs/compare.md](docs/compare.md). Katalog: [docs/catalog.md](docs/catalog.md).
+
+## Who is this for?
+
+- Teams shipping **admin panels / internal tools** on Gin with CSRF, sessions, RBAC, and a JWT API for Next.js or mobile
+- Sites that want **file-based routes** and per-route **SSR / SSG / ISR / Static / CSR** without leaving Go
+- Projects that need **SQL + migrations**, **SSE/WebSocket**, or platform helpers (upload, queue, mail, …) **only when imported**
+
+## Who is this NOT for?
+
+- Pure JSON microservices that only need a router — use Gin/Echo/Fiber alone
+- Anyone looking for a **CMS**, **GraphQL-in-core**, or a Beego/GoFrame-style megakit (those stay out of `irmik.New`)
+- SPA-only frontends with no Go rendering story (Irmik can still serve the API; the value is SSR/admin)
 
 ## Why Irmik
 
@@ -31,23 +42,26 @@ You get file-based routing, route-level **SSR / SSG / ISR / Static / CSR**, `htm
 - **First-class CLI** — `dev`, `build`, `generate`, `start`, `migrate`, `cache clear`
 - **Islands when you need interactivity** — React/Vite without turning the whole app into SPA-only
 
-## What each major piece does
+## Feature map
 
 | Piece | Role | Docs |
 |-------|------|------|
 | **Routing & modes** | `app/**/page.html` + `_meta.yaml` → Gin routes; SSR/SSG/ISR/Static/CSR | below |
-| **Render** | Layouts, partials, `html/template` + `tmplfunc` helpers | — |
-| **Content** | `content/<collection>/**/*.md` + frontmatter (goldmark) | — |
-| **Islands** | `{{ island "Name" … }}` via Vite + React | — |
-| **Auth** | Sessions, CSRF, JWT, passwords, RBAC (presets + optional SQL store), OAuth stubs | [auth](docs/auth.md), [rbac](docs/rbac.md) |
+| **Render** | Layouts, partials, `html/template` + `tmplfunc` helpers | [architecture](docs/architecture.md) |
+| **Content** | `content/<collection>/**/*.md` + frontmatter (goldmark) | [architecture](docs/architecture.md) |
+| **Islands** | `{{ island "Name" … }}` via Vite + React | below |
+| **Auth** | Sessions, CSRF, JWT, passwords, OAuth stubs | [auth](docs/auth.md) |
+| **RBAC** | Presets, `Can`, Gin guards; optional SQL store | [rbac](docs/rbac.md) |
 | **DB / migrate** | Opt-in drivers + golang-migrate–compatible files + optional GORM | [database](docs/database.md) |
 | **Realtime** | SSE streams + WebSocket hub/rooms | [realtime](docs/realtime.md) |
 | **Security** | Headers by default; rate limit / login limits for admin | [security](docs/security.md) |
 | **Admin + API** | HTMX CRUD helpers, pagination, REST error envelope + `/api/v1` | [admin](docs/admin.md), [api](docs/api.md) |
-| **Catalog** | upload, storage/S3, forms, mail, queue, scheduler (cron+TZ), openapi, observe, compress, imagex, secrets, grpcx, proxy, testkit, audit, cors, htmx, health checks | [catalog](docs/catalog.md) |
+| **Catalog** | upload, storage/S3, forms, mail, queue, scheduler, openapi, observe, compress, imagex, secrets, grpcx, proxy, testkit, audit, cors, htmx, health | [catalog](docs/catalog.md) |
 | **CLI** | generate routes, dev server, build/export, migrate | below |
 
-## Comparison (scan)
+**Docs index:** [architecture](docs/architecture.md) · [catalog](docs/catalog.md) · [admin](docs/admin.md) · [api](docs/api.md) · [rbac](docs/rbac.md) · [auth](docs/auth.md) · [database](docs/database.md) · [realtime](docs/realtime.md) · [security](docs/security.md) · [compare](docs/compare.md) · [roadmap](docs/roadmap.md)
+
+## Comparison
 
 | | **Irmik** | **Gin alone** | **[StatiGo](https://github.com/Elagoht/StatiGo)** | **Echo** | **Buffalo** | **Fiber** |
 |---|-----------|---------------|--------------------------------------------------|----------|-------------|-----------|
@@ -74,6 +88,8 @@ go run .
 # http://127.0.0.1:8080/login  →  /admin/items
 # API: POST /api/v1/token  ·  CRUD /api/v1/items (Bearer)
 ```
+
+Demo logins (password `password123`): `admin@example.com` (full access) · `editor@example.com` (no delete).
 
 SSR / islands blog (optional):
 
@@ -188,7 +204,16 @@ database:
 
 ## Security
 
-Baseline headers ship with `irmik.New`. Admin apps should also call `app.EnableSecureDefaults()` (rate limit) and use CSRF for cookie sessions. Details: [docs/security.md](docs/security.md).
+Baseline headers ship with `irmik.New`. Admin apps should also call `app.EnableSecureDefaults()` (rate limit) and use CSRF for cookie sessions.
+
+**Before production:**
+
+1. Set a strong **`IRMIK_JWT_SECRET`** (never ship the demo `dev-only-…` value)
+2. Use **Secure session cookies** (`session.secure: true` or leave unset outside development — Secure defaults on when not `development`)
+3. Terminate **HTTPS** (HSTS is emitted in production)
+4. Restrict WebSocket origins and trusted proxies
+
+Details: [docs/security.md](docs/security.md). Reporting: [SECURITY.md](SECURITY.md).
 
 ## Lean linking (optional drivers)
 
@@ -206,7 +231,7 @@ Heavy optional backends are **not** linked until you import them:
 
 Platform helpers live in separate packages — **not** wired by `irmik.New`. Import only what you need:
 
-`upload`, `storage` (+ `storage/s3x`), `forms`, `mail`, `queue`, `scheduler`, `openapi`, `observe` (+ `observe/otelx`), `compress` (+ `brotlix`), `imagex`, `secrets`, `grpcx`, `proxy`, `testkit`, `audit`, `api`, `paginate`, `admin`, `htmx`, `cors`.
+`upload`, `storage` (+ `storage/s3x`), `forms`, `mail`, `queue`, `scheduler`, `openapi`, `observe` (+ `observe/otelx`), `compress` (+ `brotlix`), `imagex`, `secrets`, `grpcx`, `proxy`, `testkit`, `audit`, `api`, `paginate`, `admin`, `htmx`, `cors`, `health`, `rbac` (+ `rbac/store`).
 
 Full module map: **[docs/catalog.md](docs/catalog.md)**. Admin + API guides: **[docs/admin.md](docs/admin.md)**, **[docs/api.md](docs/api.md)**.
 
@@ -235,6 +260,7 @@ flowchart TB
   App --> Plugins["plugin hooks"]
   Router --> Modes["SSR SSG ISR Static CSR"]
   Render --> Islands["Vite React islands"]
+  OptIn["opt-in: auth admin api rbac db sse ws catalog"] -.-> App
   CLI --> Build["build SSG export"]
 ```
 
@@ -252,15 +278,17 @@ See [docs/architecture.md](docs/architecture.md).
 | Area | Status | Docs |
 |------|--------|------|
 | Admin UI + REST API kit | Done | [docs/admin.md](docs/admin.md), [docs/api.md](docs/api.md) |
-| Auth stack | Done | [docs/auth.md](docs/auth.md) |
+| Auth + RBAC | Done | [docs/auth.md](docs/auth.md), [docs/rbac.md](docs/rbac.md) |
 | Database / migrations | Done | [docs/database.md](docs/database.md) |
 | Realtime (SSE + WebSocket) | Done | [docs/realtime.md](docs/realtime.md) |
 | Lean linking + security defaults | Done | [docs/security.md](docs/security.md) |
 | Opt-in feature catalog | Done | [docs/catalog.md](docs/catalog.md) |
 
-## Opt-in P1 helpers (import only)
+Further ideas and the **do not add to core** list: **[docs/roadmap.md](docs/roadmap.md)**.
 
-Timezone cron (`irmik/scheduler`), HTMX admin headers (`irmik/htmx`), CORS (`irmik/cors`), audit Gin middleware (`irmik/audit`), `app.UseRequestLog()`, and `/ready` dependency checks (`app.RegisterReadyCheck` / `irmik/health`) — see [docs/catalog.md](docs/catalog.md). Further ideas and the **do not add to core** list: **[docs/roadmap.md](docs/roadmap.md)**.
+## Contributing
+
+Issues and PRs welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for workflow and [SECURITY.md](SECURITY.md) for private vulnerability reports. Please do not paste secrets, tokens, or production credentials into issues.
 
 ## License
 

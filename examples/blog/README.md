@@ -1,6 +1,6 @@
 # Irmik Blog example
 
-Reference app for **Irmik Phase 1**: file-based routes, Markdown content, ISR, and a React/Vite island.
+Reference app for file-based routes, Markdown content, ISR, and a React/Vite island.
 
 ## Routes
 

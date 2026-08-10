@@ -1,4 +1,4 @@
-# StatiGo → Irmik: lessons for Phase 1
+# StatiGo → Irmik: lessons learned
 
 Source researched: [Elagoht/StatiGo](https://github.com/Elagoht/StatiGo) (cloned 2026-08-10).  
 License: **MIT** (Copyright 2026 Elagoht) — ideas and small reimplementations are fine; attribute here; do not paste large verbatim chunks without keeping the MIT notice.

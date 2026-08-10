@@ -1,4 +1,4 @@
-# Auth stack (Phase 2.1)
+# Auth stack
 
 Irmik’s auth layer is optional and thin: enable what you need on `irmik.App`, then mount Gin middleware.
 
@@ -22,12 +22,14 @@ session:
   # secure: omitted → Secure when not development
 
 auth:
-  jwtSecret: "..."      # or IRMIK_JWT_SECRET
+  jwtSecret: "..."      # or IRMIK_JWT_SECRET — required for JWT; never ship demo defaults
   jwtIssuer: irmik
   accessTTL: 15m
 ```
 
 Env: `IRMIK_SESSION_DRIVER`, `IRMIK_SESSION_SECRET`, `IRMIK_SESSION_REDIS_URL`, `IRMIK_JWT_SECRET`, `IRMIK_JWT_ISSUER`, `REDIS_URL`.
+
+In production set a strong `IRMIK_JWT_SECRET` and keep session cookies Secure (see [security.md](security.md)).
 
 ### Redis sessions
 

@@ -52,13 +52,24 @@ app.EnableRateLimit(middleware.RateLimitConfig{RPS: 20, Burst: 40})
 
 Keys default to `c.ClientIP()` (honors Gin trusted proxies).
 
+## Secrets & cookies (production)
+
+| Setting | Guidance |
+|---------|----------|
+| `auth.jwtSecret` / `IRMIK_JWT_SECRET` | **Required** for JWT. Use a long random secret. Never deploy example defaults like `dev-only-change-me-…`. |
+| `session.secure` | Cookie `Secure` flag. If omitted, Irmik sets Secure when env is **not** `development`. Force `true` behind HTTPS. |
+| `session` secret / Redis URL | Prefer env (`IRMIK_SESSION_SECRET`, `REDIS_URL`); do not commit real values. |
+
+Report vulnerabilities privately via [SECURITY.md](../SECURITY.md) — do not paste live secrets into GitHub issues.
+
 ## Admin checklist
 
 1. `app.EnableSecureDefaults()` (or explicit `EnableRateLimit`)
 2. `app.EnableSessions()` + `csrf.Middleware` for cookie/session UIs
-3. HTTPS in production (headers already emit HSTS when `app.env` is not development)
-4. Secure session cookies (`session.secure` / production default)
-5. Blank-import only the DB/cache/session drivers you need ([database.md](database.md), README lean linking)
+3. Strong `IRMIK_JWT_SECRET` (never ship demo secrets)
+4. HTTPS in production (headers already emit HSTS when `app.env` is not development)
+5. Secure session cookies (`session.secure` / production default)
+6. Blank-import only the DB/cache/session drivers you need ([database.md](database.md), README lean linking)
 
 ## Packages
 

@@ -29,6 +29,7 @@ Fair, high-level comparison. “Yes” means first-class or documented in-tree h
 
 - Not a CMS.
 - Not a heavy DI / all-in-one enterprise kernel (contrast GoFrame/Beego-style megakit).
+- Not GraphQL-as-built-in (REST + JWT helpers are first-class; GraphQL would be a separate opt-in if ever added).
 - Not a replacement for pure API micro-frameworks when you only need routing.
 
 See also [statigo-lessons.md](statigo-lessons.md), [catalog.md](catalog.md), [roadmap.md](roadmap.md).

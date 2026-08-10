@@ -1,6 +1,6 @@
 # Realtime example
 
-Phase 2.3 demo: SSE clock + hub stream, WebSocket echo + chat room.
+Demo: SSE clock + hub stream, WebSocket echo + chat room.
 
 ```bash
 cd examples/realtime
