@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/irmik-logo.png" alt="Irmik" width="320" />
+  <img src="docs/assets/irmik-logo.png?v=2" alt="Irmik" width="320" />
 </p>
 
 # Irmik
