@@ -3,6 +3,7 @@ package rbac
 
 import (
 	"net/http"
+	"sort"
 	"strings"
 	"sync"
 
@@ -10,6 +11,10 @@ import (
 
 	"github.com/boracomet/go-irmik/irmik/auth"
 )
+
+func sortStrings(ss []string) {
+	sort.Strings(ss)
+}
 
 // Checker evaluates whether a user has a permission or role.
 type Checker interface {
@@ -37,18 +42,64 @@ func New() *Registry {
 	}
 }
 
+// Grant assigns permissions to a role (alias of GrantRolePermissions).
+func (r *Registry) Grant(role string, perms ...string) {
+	r.GrantRolePermissions(role, perms...)
+}
+
 // GrantRolePermissions assigns permissions to a role.
 func (r *Registry) GrantRolePermissions(role string, perms ...string) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	role = strings.TrimSpace(role)
+	if role == "" {
+		return
+	}
 	set, ok := r.rolePerms[role]
 	if !ok {
 		set = make(map[string]struct{})
 		r.rolePerms[role] = set
 	}
 	for _, p := range perms {
+		p = strings.TrimSpace(p)
+		if p == "" {
+			continue
+		}
 		set[p] = struct{}{}
 	}
+}
+
+// PermissionsFor returns a sorted copy of permissions granted to a role.
+func (r *Registry) PermissionsFor(role string) []string {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	set := r.rolePerms[strings.TrimSpace(role)]
+	if len(set) == 0 {
+		return nil
+	}
+	out := make([]string, 0, len(set))
+	for p := range set {
+		out = append(out, p)
+	}
+	sortStrings(out)
+	return out
+}
+
+// Has is a short alias for HasPermission.
+func (r *Registry) Has(user auth.User, permission string) bool {
+	return r.HasPermission(user, permission)
+}
+
+// Roles returns known role names (those with at least one permission grant).
+func (r *Registry) Roles() []string {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	out := make([]string, 0, len(r.rolePerms))
+	for role := range r.rolePerms {
+		out = append(out, role)
+	}
+	sortStrings(out)
+	return out
 }
 
 // AssignRoles gives roles to a user id.
@@ -168,17 +219,24 @@ func RequireRole(checker Checker, roles ...string) gin.HandlerFunc {
 
 // RequirePermission aborts with 403 unless the user has the permission.
 func RequirePermission(checker Checker, permission string) gin.HandlerFunc {
+	return RequireAnyPermission(checker, permission)
+}
+
+// RequireAnyPermission aborts with 403 unless the user has at least one permission.
+func RequireAnyPermission(checker Checker, permissions ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		u, ok := auth.UserFrom(c)
 		if !ok {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 			return
 		}
-		if !checker.HasPermission(u, permission) {
-			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "forbidden"})
-			return
+		for _, permission := range permissions {
+			if checker.HasPermission(u, permission) {
+				c.Next()
+				return
+			}
 		}
-		c.Next()
+		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "forbidden"})
 	}
 }
 

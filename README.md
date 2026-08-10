@@ -39,7 +39,7 @@ You get file-based routing, route-level **SSR / SSG / ISR / Static / CSR**, `htm
 | **Render** | Layouts, partials, `html/template` + `tmplfunc` helpers | — |
 | **Content** | `content/<collection>/**/*.md` + frontmatter (goldmark) | — |
 | **Islands** | `{{ island "Name" … }}` via Vite + React | — |
-| **Auth** | Sessions, CSRF, JWT, passwords, RBAC, OAuth stubs | [auth](docs/auth.md) |
+| **Auth** | Sessions, CSRF, JWT, passwords, RBAC (presets + optional SQL store), OAuth stubs | [auth](docs/auth.md), [rbac](docs/rbac.md) |
 | **DB / migrate** | Opt-in drivers + golang-migrate–compatible files + optional GORM | [database](docs/database.md) |
 | **Realtime** | SSE streams + WebSocket hub/rooms | [realtime](docs/realtime.md) |
 | **Security** | Headers by default; rate limit / login limits for admin | [security](docs/security.md) |

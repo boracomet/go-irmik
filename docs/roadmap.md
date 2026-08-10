@@ -10,8 +10,9 @@ Irmik’s rule stays: **thin core, wide opt-in catalog**. New work should be imp
 | **Admin pagination / sort** | Safe list queries for tables + APIs | `irmik/paginate` (clamp + OrderBy whitelist) | Done |
 | **HTMX CRUD skeleton** | Reusable list/form/delete + flash↔HX | `irmik/admin` + embedded `templates/` | Done |
 | **Admin + API showcase** | One path to ship an internal product | `examples/admin` (session UI + JWT Items API) | Done |
+| **Roles / permissions primitives** | Easy RBAC for admin panels without a CMS | `irmik/rbac` presets + `Can`; opt-in `irmik/rbac/store` | Done |
 
-Docs: [api.md](api.md), [admin.md](admin.md). Catalog: [catalog.md](catalog.md).
+Docs: [api.md](api.md), [admin.md](admin.md), [rbac.md](rbac.md). Catalog: [catalog.md](catalog.md).
 
 ## P1 — low cost, high value (opt-in) — done
 

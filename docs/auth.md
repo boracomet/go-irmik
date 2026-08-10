@@ -8,7 +8,8 @@ Irmik’s auth layer is optional and thin: enable what you need on `irmik.App`, 
 | [`irmik/session`](../irmik/session) | Cookie sessions (memory default; redis via `session/redisx`), flash, middleware |
 | [`irmik/csrf`](../irmik/csrf) | CSRF token in session; validate header/form on unsafe methods |
 | [`irmik/auth`](../irmik/auth) | Session login/logout, JWT HS256, password hash (argon2id/bcrypt), OAuth `Provider` |
-| [`irmik/rbac`](../irmik/rbac) | In-memory roles → permissions + `RequireRole` / `RequirePermission` |
+| [`irmik/rbac`](../irmik/rbac) | Roles → permissions, presets, template `Can`, `RequireRole` / `RequirePermission` — see [rbac.md](rbac.md) |
+| [`irmik/rbac/store`](../irmik/rbac/store) | Opt-in Memory/SQL persistence + `LoadRegistry` |
 
 ## Config / env
 
@@ -87,6 +88,10 @@ Implement `auth.Provider` (`Name`, `AuthCodeURL`, `Exchange`). Built-ins:
 
 After session middleware, `csrf.Middleware` stores a token in the session. Clients send `X-CSRF-Token` or form field `_csrf`. Read with `csrf.Token(c)`.
 
+## RBAC
+
+Full guide: **[rbac.md](rbac.md)** (presets, SQL store, JWT/session roles, admin UI `Can`).
+
 ## Example
 
-See [`examples/auth`](../examples/auth).
+See [`examples/auth`](../examples/auth) and the admin showcase [`examples/admin`](../examples/admin).

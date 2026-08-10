@@ -36,7 +36,8 @@ Irmik keeps **`irmik.New` and the root `irmik` package thin**. Extra capabilitie
 | `irmik/session` | explicit | Cookie sessions (memory) |
 | `irmik/session/redisx` | blank or `New` | go-redis session store |
 | `irmik/csrf` | explicit | CSRF (uses session) |
-| `irmik/auth`, `irmik/rbac` | explicit | JWT/passwords/OAuth stubs/RBAC |
+| `irmik/auth`, `irmik/rbac` | explicit | JWT/passwords/OAuth stubs/RBAC (presets, `Can`, Gin guards) |
+| `irmik/rbac/store` | explicit | Memory/SQL role persistence + `LoadRegistry` (not in core) |
 | `irmik/validate` | explicit | go-playground/validator |
 | `irmik/db` | explicit | `database/sql` open |
 | `irmik/db/postgres`, `sqlite`, `mysql` | blank/register | Driver-specific deps |
@@ -181,7 +182,7 @@ admin.FlashHX(c, admin.FlashSuccess, "Saved")
 tmpl, _ := admin.ParseTemplates(nil) // list.html, form.html, confirm_delete.html, flash.html
 ```
 
-Docs: [api.md](api.md), [admin.md](admin.md). Showcase: [examples/admin](../examples/admin).
+Docs: [api.md](api.md), [admin.md](admin.md), [rbac.md](rbac.md). Showcase: [examples/admin](../examples/admin).
 
 ### Asynq / Redis queue (opt-in)
 
@@ -241,4 +242,4 @@ out, ct, err := imagex.Transform(r, imagex.Options{
 
 Prioritized “what else / what not to add to core”: **[roadmap.md](roadmap.md)**. Positioning vs Gin / StatiGo / Echo / Buffalo / Fiber: **[compare.md](compare.md)**.
 
-See also [architecture.md](architecture.md), [auth.md](auth.md), [database.md](database.md), [realtime.md](realtime.md), [api.md](api.md), [admin.md](admin.md).
+See also [architecture.md](architecture.md), [auth.md](auth.md), [rbac.md](rbac.md), [database.md](database.md), [realtime.md](realtime.md), [api.md](api.md), [admin.md](admin.md).

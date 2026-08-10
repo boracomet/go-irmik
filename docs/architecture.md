@@ -32,7 +32,7 @@ Irmik is a thin meta-framework around Gin. The public SDK lives under `irmik/`; 
 | `irmik/db`, `db/sqlite|postgres|mysql`, `migrate`, `gormx` | SQL open (opt-in drivers) + migrations (+ optional GORM) |
 | `irmik/validate` | Struct validation + Gin bind helpers |
 | `irmik/session`, `session/redisx`, `csrf` | Cookie sessions (+ optional Redis) + CSRF |
-| `irmik/auth`, `irmik/rbac` | Login/JWT/passwords/OAuth stubs + RBAC |
+| `irmik/auth`, `irmik/rbac`, `rbac/store` | Login/JWT/passwords/OAuth stubs + RBAC (+ opt-in SQL store) |
 | `irmik/middleware` | Recovery, request ID, health, secure headers, rate limit |
 | `irmik/sse`, `irmik/ws` | SSE + WebSocket hubs |
 | `irmik/config` | `irmik.yaml` + env |
@@ -46,4 +46,4 @@ Primary file: `irmik.yaml` (`app`, `server`, `cache`, `database`, `session`, `au
 
 ## Non-goals (core)
 
-Full i18n URL maps, minify-on-serve, and a DI container are out of scope for the thin core. Opt-in platform packages (upload, storage, queue, openapi, grpcx, observe, …) live beside the core — see [catalog.md](catalog.md). Auth: [auth.md](auth.md); database: [database.md](database.md); realtime: [realtime.md](realtime.md).
+Full i18n URL maps, minify-on-serve, and a DI container are out of scope for the thin core. Opt-in platform packages (upload, storage, queue, openapi, grpcx, observe, …) live beside the core — see [catalog.md](catalog.md). Auth: [auth.md](auth.md); RBAC: [rbac.md](rbac.md); database: [database.md](database.md); realtime: [realtime.md](realtime.md).

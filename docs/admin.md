@@ -1,6 +1,6 @@
 # Admin UI helpers (`irmik/admin`, `irmik/paginate`)
 
-Opt-in packages for SSR + HTMX admin panels. Pair with `irmik/htmx`, `irmik/csrf`, `irmik/session`, `irmik/validate`, and `irmik/rbac`.
+Opt-in packages for SSR + HTMX admin panels. Pair with `irmik/htmx`, `irmik/csrf`, `irmik/session`, `irmik/validate`, and `irmik/rbac` ([rbac.md](rbac.md)).
 
 ## Pagination (`irmik/paginate`)
 
@@ -66,7 +66,9 @@ app.Engine.Use(a.InjectSessionUser(lookup))
 app.Engine.Use(csrf.Middleware(csrf.Options{}))
 
 adminUI := app.Engine.Group("/admin")
-adminUI.Use(a.RequireAuthSession(), rbac.RequirePermission(reg, "items:manage"))
+adminUI.Use(a.RequireAuthSession(), rbac.RequirePermission(reg, rbac.Perm("items", "read")))
+// tmpl := template.New("x").Funcs(rbac.FuncMap(reg)).ParseFS(...)
+// {{if Can .User "items:delete"}}…{{end}}
 ```
 
 Full working demo: **[examples/admin](../examples/admin)** (Items CRUD + JWT `/api/v1/items`).

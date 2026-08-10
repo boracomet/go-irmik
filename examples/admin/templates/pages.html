@@ -1,7 +1,7 @@
 {{define "page_login"}}
 <div class="login-card">
   <h1>Sign in</h1>
-  <p class="muted">Demo: admin@example.com / password123</p>
+  <p class="muted">Demo: admin@example.com or editor@example.com / password123</p>
   {{if .Error}}<p class="flash flash-error">{{.Error}}</p>{{end}}
   <form method="post" action="/login">
     {{.CSRF}}
@@ -30,8 +30,10 @@
 <section class="irmik-admin-list" id="irmik-admin-list">
   <header class="list-header">
     <h1>Items</h1>
+    {{if Can .User "items:write"}}
     <a class="btn" href="/admin/items/new"
        hx-get="/admin/items/new" hx-target="#irmik-admin-main" hx-push-url="true">New</a>
+    {{end}}
   </header>
   <form class="list-search" method="get" action="/admin/items"
         hx-get="/admin/items" hx-target="#irmik-admin-list" hx-push-url="true"
@@ -53,16 +55,20 @@
         <td>{{.Title}}</td>
         <td class="muted">{{.UpdatedAt.Format "2006-01-02 15:04"}}</td>
         <td class="actions">
+          {{if Can $.User "items:write"}}
           <a href="/admin/items/{{.ID}}/edit"
              hx-get="/admin/items/{{.ID}}/edit" hx-target="#irmik-admin-main" hx-push-url="true">Edit</a>
+          {{end}}
+          {{if Can $.User "items:delete"}}
           <a href="/admin/items/{{.ID}}/delete"
              hx-get="/admin/items/{{.ID}}/delete" hx-target="#irmik-admin-main">Delete</a>
+          {{end}}
         </td>
       </tr>
       {{end}}
     </tbody>
   </table>
-  <p class="muted">Page {{.PageNum}} · {{.Total}} total</p>
+  <p class="muted">Page {{.PageNum}} · {{.Total}} total{{if .User.Roles}} · {{index .User.Roles 0}}{{end}}</p>
   {{end}}
 </section>
 {{end}}

@@ -29,6 +29,7 @@ import (
 	"github.com/boracomet/go-irmik/irmik/middleware"
 	"github.com/boracomet/go-irmik/irmik/paginate"
 	"github.com/boracomet/go-irmik/irmik/rbac"
+	rbacstore "github.com/boracomet/go-irmik/irmik/rbac/store"
 	"github.com/boracomet/go-irmik/irmik/validate"
 )
 
@@ -101,10 +102,10 @@ func main() {
 	}
 	users := map[string]demoUser{
 		"admin@example.com": {
-			ID: "1", Email: "admin@example.com", PasswordHash: hash, Roles: []string{"admin"},
+			ID: "1", Email: "admin@example.com", PasswordHash: hash, Roles: []string{rbac.RoleAdmin},
 		},
 		"editor@example.com": {
-			ID: "2", Email: "editor@example.com", PasswordHash: hash, Roles: []string{"editor"},
+			ID: "2", Email: "editor@example.com", PasswordHash: hash, Roles: []string{rbac.RoleEditor},
 		},
 	}
 	byID := map[string]demoUser{}
@@ -112,15 +113,27 @@ func main() {
 		byID[u.ID] = u
 	}
 
-	policies := rbac.New()
-	policies.GrantRolePermissions("admin", "items:manage", "dashboard:read")
-	policies.GrantRolePermissions("editor", "items:manage", "dashboard:read")
+	// Persist RBAC in the same SQLite DB, then sync into an in-memory Registry.
+	policyStore := rbacstore.NewSQL(database.DB(), "sqlite")
+	if err := rbacstore.SeedPresets(context.Background(), policyStore, "items"); err != nil {
+		fatal(err)
+	}
+	if err := policyStore.AssignRole(context.Background(), "1", rbac.RoleAdmin); err != nil {
+		fatal(err)
+	}
+	if err := policyStore.AssignRole(context.Background(), "2", rbac.RoleEditor); err != nil {
+		fatal(err)
+	}
+	policies, err := policyStore.LoadRegistry(context.Background())
+	if err != nil {
+		fatal(err)
+	}
 
 	adminSnippets, err := admin.ParseTemplates(nil)
 	if err != nil {
 		fatal(err)
 	}
-	tmpl, err := template.New("admin-demo").ParseFS(templateFS, "templates/*.html")
+	tmpl, err := template.New("admin-demo").Funcs(rbac.FuncMap(policies)).ParseFS(templateFS, "templates/*.html")
 	if err != nil {
 		fatal(err)
 	}
@@ -166,15 +179,15 @@ func main() {
 			auth.SetUser(c, auth.User{ID: authenticator.SessionUserID(c)})
 		}
 		c.Next()
-	}, rbac.RequirePermission(policies, "items:manage"))
+	}, rbac.RequirePermission(policies, rbac.Perm("items", "read")))
 	adminUI.GET("", func(c *gin.Context) { c.Redirect(http.StatusSeeOther, "/admin/items") })
 	adminUI.GET("/items", s.handleItemsList)
-	adminUI.GET("/items/new", s.handleItemNew)
-	adminUI.POST("/items", s.handleItemCreate)
-	adminUI.GET("/items/:id/edit", s.handleItemEdit)
-	adminUI.POST("/items/:id", s.handleItemUpdate)
-	adminUI.GET("/items/:id/delete", s.handleItemDeleteConfirm)
-	adminUI.POST("/items/:id/delete", s.handleItemDelete)
+	adminUI.GET("/items/new", rbac.RequirePermission(policies, rbac.Perm("items", "write")), s.handleItemNew)
+	adminUI.POST("/items", rbac.RequirePermission(policies, rbac.Perm("items", "write")), s.handleItemCreate)
+	adminUI.GET("/items/:id/edit", rbac.RequirePermission(policies, rbac.Perm("items", "write")), s.handleItemEdit)
+	adminUI.POST("/items/:id", rbac.RequirePermission(policies, rbac.Perm("items", "write")), s.handleItemUpdate)
+	adminUI.GET("/items/:id/delete", rbac.RequirePermission(policies, rbac.Perm("items", "delete")), s.handleItemDeleteConfirm)
+	adminUI.POST("/items/:id/delete", rbac.RequirePermission(policies, rbac.Perm("items", "delete")), s.handleItemDelete)
 
 	// JWT API for external clients (Next.js, mobile, …).
 	api.MountV1(app.Engine, func(v1 *gin.RouterGroup) {
@@ -182,12 +195,12 @@ func main() {
 
 		items := v1.Group("/items")
 		items.Use(authenticator.RequireJWT())
-		items.GET("", s.apiListItems)
-		items.POST("", s.apiCreateItem)
-		items.GET("/:id", s.apiGetItem)
-		items.PUT("/:id", s.apiUpdateItem)
-		items.PATCH("/:id", s.apiUpdateItem)
-		items.DELETE("/:id", s.apiDeleteItem)
+		items.GET("", rbac.RequirePermission(policies, rbac.Perm("items", "read")), s.apiListItems)
+		items.POST("", rbac.RequirePermission(policies, rbac.Perm("items", "write")), s.apiCreateItem)
+		items.GET("/:id", rbac.RequirePermission(policies, rbac.Perm("items", "read")), s.apiGetItem)
+		items.PUT("/:id", rbac.RequirePermission(policies, rbac.Perm("items", "write")), s.apiUpdateItem)
+		items.PATCH("/:id", rbac.RequirePermission(policies, rbac.Perm("items", "write")), s.apiUpdateItem)
+		items.DELETE("/:id", rbac.RequirePermission(policies, rbac.Perm("items", "delete")), s.apiDeleteItem)
 	})
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -196,6 +209,7 @@ func main() {
 	fmt.Printf("irmik admin demo on http://%s\n", cfg.Addr())
 	fmt.Println("  UI:  /login  →  /admin/items")
 	fmt.Println("  API: /api/v1/token  /api/v1/items")
+	fmt.Println("  RBAC: admin can delete; editor can create/edit (no delete)")
 	if err := app.Run(ctx); err != nil {
 		fatal(err)
 	}

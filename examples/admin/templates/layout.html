@@ -75,7 +75,7 @@
     <a class="brand" href="/admin">Irmik Admin</a>
     <nav>
       {{if .User}}
-        <span class="muted">{{.User.Email}}</span>
+        <span class="muted">{{.User.Email}}{{if .User.Roles}} · {{index .User.Roles 0}}{{end}}</span>
         <a href="/admin/items">Items</a>
         <form method="post" action="/logout" style="display:inline">
           {{.CSRF}}
