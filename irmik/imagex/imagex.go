@@ -1,0 +1,101 @@
+// Package imagex provides image decode/resize/encode helpers.
+//
+// Supports JPEG/PNG/GIF encode via the standard library, and WebP decode via
+// golang.org/x/image/webp. WebP encode is not available without CGO; use JPEG/PNG.
+//
+// Opt-in: import only when processing images.
+package imagex
+
+import (
+	"bytes"
+	"fmt"
+	"image"
+	_ "image/gif"
+	"image/jpeg"
+	"image/png"
+	"io"
+
+	"golang.org/x/image/draw"
+	_ "golang.org/x/image/webp"
+)
+
+// Format is an output encoding.
+type Format string
+
+const (
+	JPEG Format = "jpeg"
+	PNG  Format = "png"
+)
+
+// Options controls resize/encode.
+type Options struct {
+	// MaxWidth / MaxHeight constrain dimensions (preserving aspect). 0 = unlimited.
+	MaxWidth  int
+	MaxHeight int
+	Format    Format
+	// Quality for JPEG (1-100, default 85).
+	Quality int
+}
+
+// Transform decodes src (JPEG/PNG/GIF/WebP), optionally resizes, and encodes.
+func Transform(src io.Reader, opts Options) ([]byte, string, error) {
+	if opts.Format == "" {
+		opts.Format = JPEG
+	}
+	if opts.Quality <= 0 {
+		opts.Quality = 85
+	}
+	data, err := io.ReadAll(src)
+	if err != nil {
+		return nil, "", err
+	}
+	img, _, err := image.Decode(bytes.NewReader(data))
+	if err != nil {
+		return nil, "", fmt.Errorf("imagex: decode: %w", err)
+	}
+	img = resize(img, opts.MaxWidth, opts.MaxHeight)
+	var buf bytes.Buffer
+	var ct string
+	switch opts.Format {
+	case JPEG:
+		ct = "image/jpeg"
+		err = jpeg.Encode(&buf, img, &jpeg.Options{Quality: opts.Quality})
+	case PNG:
+		ct = "image/png"
+		err = png.Encode(&buf, img)
+	default:
+		return nil, "", fmt.Errorf("imagex: unknown format %q (webp encode unsupported)", opts.Format)
+	}
+	if err != nil {
+		return nil, "", err
+	}
+	return buf.Bytes(), ct, nil
+}
+
+// Resize returns a resized image without encoding.
+func Resize(img image.Image, maxW, maxH int) image.Image {
+	return resize(img, maxW, maxH)
+}
+
+func resize(img image.Image, maxW, maxH int) image.Image {
+	b := img.Bounds()
+	w, h := b.Dx(), b.Dy()
+	if maxW <= 0 && maxH <= 0 {
+		return img
+	}
+	nw, nh := w, h
+	if maxW > 0 && nw > maxW {
+		nh = nh * maxW / nw
+		nw = maxW
+	}
+	if maxH > 0 && nh > maxH {
+		nw = nw * maxH / nh
+		nh = maxH
+	}
+	if nw == w && nh == h {
+		return img
+	}
+	dst := image.NewRGBA(image.Rect(0, 0, nw, nh))
+	draw.CatmullRom.Scale(dst, dst.Bounds(), img, b, draw.Over, nil)
+	return dst
+}

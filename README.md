@@ -162,6 +162,14 @@ Heavy optional backends are **not** linked until you import them:
 
 `cache.New` / `session.New` with `driver: redis` without the matching blank-import returns a clear error. Memory/disk cache and memory sessions need no extra import.
 
+## Opt-in catalog (wide catalog, thin core)
+
+Platform helpers live in separate packages — **not** wired by `irmik.New`. Import only what you need:
+
+`upload`, `storage` (+ `storage/s3x`), `forms`, `mail`, `queue`, `scheduler`, `openapi`, `observe` (+ `observe/otelx`), `compress` (+ `brotlix`), `imagex`, `secrets`, `grpcx`, `proxy`, `testkit`, `audit`.
+
+Full module map and “what gets linked”: **[docs/catalog.md](docs/catalog.md)**.
+
 ## Realtime (Phase 2.3)
 
 SSE and WebSocket helpers for Gin. Set `server.writeTimeout: 0` for long-lived connections. See [docs/realtime.md](docs/realtime.md).
@@ -208,6 +216,7 @@ Fully wired demos:
 | **2.2 Database / migrations** | Done | [docs/database.md](docs/database.md) |
 | **2.3 Realtime (SSE + WebSocket)** | Done | [docs/realtime.md](docs/realtime.md) |
 | **Lean linking + security defaults** | Done | [docs/security.md](docs/security.md), lean linking above |
+| **Opt-in feature catalog** | Done | [docs/catalog.md](docs/catalog.md) |
 
 ## Changelog notes
 
@@ -224,7 +233,7 @@ Fully wired demos:
 
 ## Roadmap (later)
 
-Validation/forms UI helpers, queues, OpenAPI/gRPC, observability, image optimization, `embed.FS` single-binary sites, richer i18n routing.
+`embed.FS` single-binary sites, richer i18n routing, Redis/asynq queue backend, fuller OpenAPI/Swagger UI, WebP encode without CGO.
 
 ## License
 
