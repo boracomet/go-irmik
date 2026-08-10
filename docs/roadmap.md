@@ -2,9 +2,18 @@
 
 Irmik’s rule stays: **thin core, wide opt-in catalog**. New work should be import-only packages or small CLI/config helpers — never hard-wired into `irmik.New`.
 
-## Recommended next (prioritized)
+## Product must-haves — done
 
-### P1 — low cost, high value (opt-in) — done
+| Idea | Why | Shape | Status |
+|------|-----|--------|--------|
+| **REST conventions** | Standard JSON errors + `/api/v1` for Next.js clients | `irmik/api` (`JSON`, `Error`, `Abort`, `V1` / `MountV1`) | Done |
+| **Admin pagination / sort** | Safe list queries for tables + APIs | `irmik/paginate` (clamp + OrderBy whitelist) | Done |
+| **HTMX CRUD skeleton** | Reusable list/form/delete + flash↔HX | `irmik/admin` + embedded `templates/` | Done |
+| **Admin + API showcase** | One path to ship an internal product | `examples/admin` (session UI + JWT Items API) | Done |
+
+Docs: [api.md](api.md), [admin.md](admin.md). Catalog: [catalog.md](catalog.md).
+
+## P1 — low cost, high value (opt-in) — done
 
 | Idea | Why | Shape | Status |
 |------|-----|--------|--------|
@@ -15,7 +24,7 @@ Irmik’s rule stays: **thin core, wide opt-in catalog**. New work should be imp
 | **Health dependency checks** | `/ready` that pings DB/Redis/queue | `irmik/health` + `app.RegisterReadyCheck` | Done |
 | **HTMX helpers for admin** | Partial/HX response helpers | Opt-in `irmik/htmx` | Done |
 
-### P2 — useful, still lean
+## P2 — useful, still lean
 
 | Idea | Why | Shape |
 |------|-----|--------|

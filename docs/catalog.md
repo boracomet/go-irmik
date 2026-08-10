@@ -70,6 +70,9 @@ Irmik keeps **`irmik.New` and the root `irmik` package thin**. Extra capabilitie
 | `irmik/cors` | Stable | `r.Use(cors.Middleware(opts))` | none |
 | `irmik/htmx` | Stable | `htmx.IsRequest` / `Redirect` / `Trigger` / `RenderPartial` | none |
 | `irmik/health` | Stable | `health.New()` + `app.RegisterReadyCheck` | none |
+| `irmik/api` | Stable | `api.JSON` / `Error` / `Abort` / `V1` / `MountV1` | none |
+| `irmik/paginate` | Stable | `paginate.Parse` + `OrderBy` whitelist | none |
+| `irmik/admin` | Stable | flash↔HX, CRUD snippets via `ParseTemplates` / `TemplatesFS` | htmx, session, paginate |
 
 ## Wiring snippets
 
@@ -156,6 +159,30 @@ app.Engine.POST("/users", func(c *gin.Context) {
 })
 ```
 
+### REST API + admin list helpers
+
+```go
+import (
+    "github.com/boracomet/go-irmik/irmik/api"
+    "github.com/boracomet/go-irmik/irmik/admin"
+    "github.com/boracomet/go-irmik/irmik/paginate"
+)
+
+api.MountV1(app.Engine, func(v1 *gin.RouterGroup) {
+    v1.Use(authenticator.RequireJWT())
+    v1.GET("/items", func(c *gin.Context) {
+        p := paginate.Parse(c, paginate.Options{SortWhitelist: []string{"id", "title"}})
+        // use p.Offset(), p.Limit(), p.OrderBy(columns)
+        api.JSON(c, 200, gin.H{"data": items, "meta": gin.H{"page": p.Page}})
+    })
+})
+
+admin.FlashHX(c, admin.FlashSuccess, "Saved")
+tmpl, _ := admin.ParseTemplates(nil) // list.html, form.html, confirm_delete.html, flash.html
+```
+
+Docs: [api.md](api.md), [admin.md](admin.md). Showcase: [examples/admin](../examples/admin).
+
 ### Asynq / Redis queue (opt-in)
 
 ```go
@@ -214,4 +241,4 @@ out, ct, err := imagex.Transform(r, imagex.Options{
 
 Prioritized “what else / what not to add to core”: **[roadmap.md](roadmap.md)**. Positioning vs Gin / StatiGo / Echo / Buffalo / Fiber: **[compare.md](compare.md)**.
 
-See also [architecture.md](architecture.md), [auth.md](auth.md), [database.md](database.md), [realtime.md](realtime.md).
+See also [architecture.md](architecture.md), [auth.md](auth.md), [database.md](database.md), [realtime.md](realtime.md), [api.md](api.md), [admin.md](admin.md).

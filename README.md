@@ -12,6 +12,8 @@
 **Irmik** is a Gin-based meta-framework for Go: **thin core**, **wide opt-in catalog**.  
 Use it for **admin / internal systems** and **SSR sites** that need security defaults and speed — without dragging a CMS or a megakit into every binary.
 
+**Primary path:** build an **admin UI + JWT API** with the [examples/admin](examples/admin) showcase (`irmik/admin`, `irmik/api`, `irmik/paginate`).
+
 You get file-based routing, route-level **SSR / SSG / ISR / Static / CSR**, `html/template` pages, React/Vite islands, Markdown content, auth, SQL/migrate, realtime, a small CLI, and platform helpers (upload, queue, mail, OpenAPI, …) that stay out of the link until you import them.
 
 **Module:** [`github.com/boracomet/go-irmik`](https://github.com/boracomet/go-irmik)
@@ -41,6 +43,7 @@ You get file-based routing, route-level **SSR / SSG / ISR / Static / CSR**, `htm
 | **DB / migrate** | Opt-in drivers + golang-migrate–compatible files + optional GORM | [database](docs/database.md) |
 | **Realtime** | SSE streams + WebSocket hub/rooms | [realtime](docs/realtime.md) |
 | **Security** | Headers by default; rate limit / login limits for admin | [security](docs/security.md) |
+| **Admin + API** | HTMX CRUD helpers, pagination, REST error envelope + `/api/v1` | [admin](docs/admin.md), [api](docs/api.md) |
 | **Catalog** | upload, storage/S3, forms, mail, queue, scheduler (cron+TZ), openapi, observe, compress, imagex, secrets, grpcx, proxy, testkit, audit, cors, htmx, health checks | [catalog](docs/catalog.md) |
 | **CLI** | generate routes, dev server, build/export, migrate | below |
 
@@ -65,7 +68,16 @@ Full notes and fair caveats: **[docs/compare.md](docs/compare.md)**. StatiGo les
 ```bash
 go get github.com/boracomet/go-irmik@latest
 
-# try the example blog
+# primary showcase: session admin UI + JWT REST API
+cd examples/admin
+go run .
+# http://127.0.0.1:8080/login  →  /admin/items
+# API: POST /api/v1/token  ·  CRUD /api/v1/items (Bearer)
+```
+
+SSR / islands blog (optional):
+
+```bash
 cd examples/blog
 npm install && npm run dev   # optional islands HMR on :5173
 go run .                     # http://127.0.0.1:8080
@@ -194,9 +206,9 @@ Heavy optional backends are **not** linked until you import them:
 
 Platform helpers live in separate packages — **not** wired by `irmik.New`. Import only what you need:
 
-`upload`, `storage` (+ `storage/s3x`), `forms`, `mail`, `queue`, `scheduler`, `openapi`, `observe` (+ `observe/otelx`), `compress` (+ `brotlix`), `imagex`, `secrets`, `grpcx`, `proxy`, `testkit`, `audit`.
+`upload`, `storage` (+ `storage/s3x`), `forms`, `mail`, `queue`, `scheduler`, `openapi`, `observe` (+ `observe/otelx`), `compress` (+ `brotlix`), `imagex`, `secrets`, `grpcx`, `proxy`, `testkit`, `audit`, `api`, `paginate`, `admin`, `htmx`, `cors`.
 
-Full module map: **[docs/catalog.md](docs/catalog.md)**.
+Full module map: **[docs/catalog.md](docs/catalog.md)**. Admin + API guides: **[docs/admin.md](docs/admin.md)**, **[docs/api.md](docs/api.md)**.
 
 ## Realtime
 
@@ -230,6 +242,7 @@ See [docs/architecture.md](docs/architecture.md).
 
 ## Examples
 
+- [`examples/admin`](examples/admin) — **start here:** HTMX Items admin + JWT `/api/v1/items` (Next.js-ready)
 - [`examples/blog`](examples/blog) — SSR home, SSG about, ISR posts, Counter island
 - [`examples/auth`](examples/auth) — session login, CSRF, JWT, RBAC
 - [`examples/realtime`](examples/realtime) — SSE clock/stream, WebSocket echo + chat room
@@ -238,6 +251,7 @@ See [docs/architecture.md](docs/architecture.md).
 
 | Area | Status | Docs |
 |------|--------|------|
+| Admin UI + REST API kit | Done | [docs/admin.md](docs/admin.md), [docs/api.md](docs/api.md) |
 | Auth stack | Done | [docs/auth.md](docs/auth.md) |
 | Database / migrations | Done | [docs/database.md](docs/database.md) |
 | Realtime (SSE + WebSocket) | Done | [docs/realtime.md](docs/realtime.md) |
