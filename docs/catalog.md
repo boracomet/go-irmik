@@ -187,6 +187,8 @@ out, ct, err := imagex.Transform(r, imagex.Options{
 
 ## What is *not* in the catalog yet
 
-- Full cron syntax / timezone-aware scheduler
+- Full cron syntax / timezone-aware scheduler (see [roadmap.md](roadmap.md) P1)
+
+Prioritized “what else / what not to add to core”: **[roadmap.md](roadmap.md)**. Positioning vs Gin / StatiGo / Echo / Buffalo / Fiber: **[compare.md](compare.md)**.
 
 See also [architecture.md](architecture.md), [auth.md](auth.md), [database.md](database.md), [realtime.md](realtime.md).

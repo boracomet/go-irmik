@@ -4,31 +4,56 @@
 
 # Irmik
 
-**Irmik** is a Next.js-inspired meta-framework for Go. It sits on [Gin](https://github.com/gin-gonic/gin) and gives you file-based routing, route-level rendering modes (SSR / SSG / ISR / Static / CSR), `html/template` pages, React/Vite islands, Markdown content collections, a small CLI, and an optional SQL data stack — without dragging in a full CMS.
+**Irmik** is a Gin-based meta-framework for Go: **thin core**, **wide opt-in catalog**.  
+Use it for **admin / internal systems** and **SSR sites** that need security defaults and speed — without dragging a CMS or a megakit into every binary.
 
-Brand mark lives at [`assets/irmik.png`](assets/irmik.png) (use for GitHub social preview if desired).
-
-> **Türkçe özet:** Irmik, Gin üzerine kurulu, dosya tabanlı rotalar ve SSR/SSG/ISR modları sunan bir meta-framework’tür. Sayfalar `html/template`, etkileşimli parçalar React/Vite islands, içerik Markdown koleksiyonlarıdır. Phase 2.1 auth/session; Phase 2.2 SQL/migration; Phase 2.3 SSE/WebSocket.
+You get file-based routing, route-level **SSR / SSG / ISR / Static / CSR**, `html/template` pages, React/Vite islands, Markdown content, auth, SQL/migrate, realtime, a small CLI, and platform helpers (upload, queue, mail, OpenAPI, …) that stay out of the link until you import them.
 
 **Module:** [`github.com/boracomet/go-irmik`](https://github.com/boracomet/go-irmik)
 
-## Features (Phase 1)
+> **Türkçe özet:** Irmik, Gin üzerine kurulu bir meta-framework’tür. Çekirdek ince kalır; upload, kuyruk, mail, OpenAPI gibi parçalar **isteğe bağlı** paketlerdir. Dosya tabanlı rotalar, SSR/SSG/ISR, `html/template` + React/Vite islands, Markdown içerik, auth/session, SQL/migration, SSE/WebSocket ve admin güvenlik varsayılanları sunar. Hem iç sistem / admin panelleri hem de SSR siteler için uygundur. Karşılaştırma: [docs/compare.md](docs/compare.md). Katalog: [docs/catalog.md](docs/catalog.md).
 
-| Area | What you get |
-|------|----------------|
-| **HTTP** | Gin engine, recovery, request ID, security headers, `/health` + `/ready` |
-| **Routing** | `app/**/page.html` + `_meta.yaml`; `[slug]` → `:slug` |
-| **Modes** | SSR, SSG, ISR (TTL + stale revalidate), Static, CSR |
-| **Templates** | Layouts, partials, `tmplfunc` helpers (`dict`, `slugify`, …) |
-| **Islands** | `{{ island "Counter" … }}` via Vite + React |
-| **Content** | `content/<collection>/**/*.md` + frontmatter (goldmark) |
-| **SEO** | Title/OG/Twitter/JSON-LD helpers, `sitemap.xml`, `robots.txt` |
-| **Cache** | Memory / disk by default; Redis via `irmik/cache/redisx` |
-| **Data** | `irmik/db` + opt-in drivers (`db/sqlite`, `db/postgres`, `db/mysql`) + migrate + optional GORM |
-| **Auth** | Sessions, CSRF, JWT, passwords, RBAC, OAuth provider stubs ([docs/auth.md](docs/auth.md)) |
-| **Security** | Headers by default; rate limit via `EnableSecureDefaults` ([docs/security.md](docs/security.md)) |
-| **Realtime** | SSE (`irmik/sse`) + WebSocket hub/rooms (`irmik/ws`) ([docs/realtime.md](docs/realtime.md)) |
-| **CLI** | `dev`, `build`, `generate`, `start`, `cache clear`, `migrate` |
+## Why Irmik
+
+- **Gin-compatible** — keep Gin handlers, middleware, and ecosystem muscle memory
+- **Thin core + lean linking** — Redis, DB drivers, S3, OTel, gRPC link only when blank-imported
+- **Wide opt-in catalog** — platform pieces without a batteries-forced megakit ([docs/catalog.md](docs/catalog.md))
+- **SSR / SSG / ISR** — per-route modes in `_meta.yaml`, seeded by `irmik build`
+- **Admin security defaults** — baseline headers; `EnableSecureDefaults()` rate limit; CSRF for cookie sessions
+- **Auth + SQL + realtime** — sessions/JWT/RBAC, `database/sql` + migrate, SSE + WebSocket hubs
+- **First-class CLI** — `dev`, `build`, `generate`, `start`, `migrate`, `cache clear`
+- **Islands when you need interactivity** — React/Vite without turning the whole app into SPA-only
+
+## What each major piece does
+
+| Piece | Role | Docs |
+|-------|------|------|
+| **Routing & modes** | `app/**/page.html` + `_meta.yaml` → Gin routes; SSR/SSG/ISR/Static/CSR | below |
+| **Render** | Layouts, partials, `html/template` + `tmplfunc` helpers | — |
+| **Content** | `content/<collection>/**/*.md` + frontmatter (goldmark) | — |
+| **Islands** | `{{ island "Name" … }}` via Vite + React | — |
+| **Auth** | Sessions, CSRF, JWT, passwords, RBAC, OAuth stubs | [auth](docs/auth.md) |
+| **DB / migrate** | Opt-in drivers + golang-migrate–compatible files + optional GORM | [database](docs/database.md) |
+| **Realtime** | SSE streams + WebSocket hub/rooms | [realtime](docs/realtime.md) |
+| **Security** | Headers by default; rate limit / login limits for admin | [security](docs/security.md) |
+| **Catalog** | upload, storage/S3, forms, mail, queue, scheduler, openapi, observe, compress, imagex, secrets, grpcx, proxy, testkit, audit | [catalog](docs/catalog.md) |
+| **CLI** | generate routes, dev server, build/export, migrate | below |
+
+## Comparison (scan)
+
+| | **Irmik** | **Gin alone** | **[StatiGo](https://github.com/Elagoht/StatiGo)** | **Echo** | **Buffalo** | **Fiber** |
+|---|-----------|---------------|--------------------------------------------------|----------|-------------|-----------|
+| HTTP | Gin | Gin | chi | Echo | gorilla/mux | fasthttp |
+| SSR/SSG/ISR | Yes | — | Yes (static-first) | — | Templates / pipeline | — |
+| Auth/RBAC | Opt-in | DIY | Site security focus | DIY | Ecosystem | DIY |
+| SQL/migrate | Opt-in | DIY | — | DIY | Pop/Soda | DIY |
+| Realtime | SSE + WS | DIY | — | DIY | Workers | WS DIY |
+| Admin security defaults | Yes | — | Strong site defaults | DIY | Conventions | DIY |
+| Opt-in catalog | Wide | — | Site kit | MW ecosystem | Batteries (heavier) | MW ecosystem |
+| Lean linking | Yes | Very lean | Lean / embed | Lean | Heavier | Lean-ish |
+| Best fit | Admin + SSR sites | APIs / glue | Content/SEO sites | APIs | Full-stack apps | Fast APIs |
+
+Full notes and fair caveats: **[docs/compare.md](docs/compare.md)**. StatiGo lessons (attribution): [docs/statigo-lessons.md](docs/statigo-lessons.md).
 
 ## Quick start
 
@@ -128,7 +153,7 @@ irmik cache clear       # wipe configured cache store
 irmik migrate up|down|status|create <name>
 ```
 
-## Database (Phase 2.2)
+## Database
 
 SQL via `database/sql` and golang-migrate–compatible files under `migrations/`. Drivers are **opt-in** blank-imports — see [docs/database.md](docs/database.md).
 
@@ -142,12 +167,6 @@ database:
   driver: sqlite
   dsn: ./data/app.db
   migratePath: migrations
-```
-
-```bash
-irmik migrate create add_users
-irmik migrate up
-irmik migrate status
 ```
 
 ## Security
@@ -166,17 +185,15 @@ Heavy optional backends are **not** linked until you import them:
 | Postgres | `_ "github.com/boracomet/go-irmik/irmik/db/postgres"` |
 | MySQL | `_ "github.com/boracomet/go-irmik/irmik/db/mysql"` |
 
-`cache.New` / `session.New` with `driver: redis` without the matching blank-import returns a clear error. Memory/disk cache and memory sessions need no extra import.
-
-## Opt-in catalog (wide catalog, thin core)
+## Opt-in catalog
 
 Platform helpers live in separate packages — **not** wired by `irmik.New`. Import only what you need:
 
 `upload`, `storage` (+ `storage/s3x`), `forms`, `mail`, `queue`, `scheduler`, `openapi`, `observe` (+ `observe/otelx`), `compress` (+ `brotlix`), `imagex`, `secrets`, `grpcx`, `proxy`, `testkit`, `audit`.
 
-Full module map and “what gets linked”: **[docs/catalog.md](docs/catalog.md)**.
+Full module map: **[docs/catalog.md](docs/catalog.md)**.
 
-## Realtime (Phase 2.3)
+## Realtime
 
 SSE and WebSocket helpers for Gin. Set `server.writeTimeout: 0` for long-lived connections. See [docs/realtime.md](docs/realtime.md).
 
@@ -204,43 +221,28 @@ flowchart TB
   CLI --> Build["build SSG export"]
 ```
 
-See [docs/architecture.md](docs/architecture.md) and [docs/statigo-lessons.md](docs/statigo-lessons.md) (patterns inspired by [StatiGo](https://github.com/Elagoht/StatiGo), MIT).
+See [docs/architecture.md](docs/architecture.md).
 
-## Example
-
-Fully wired demos:
+## Examples
 
 - [`examples/blog`](examples/blog) — SSR home, SSG about, ISR posts, Counter island
 - [`examples/auth`](examples/auth) — session login, CSRF, JWT, RBAC
 - [`examples/realtime`](examples/realtime) — SSE clock/stream, WebSocket echo + chat room
 
-## Phase 2 status
+## Status
 
 | Area | Status | Docs |
 |------|--------|------|
-| **2.1 Auth stack** | Done | [docs/auth.md](docs/auth.md) |
-| **2.2 Database / migrations** | Done | [docs/database.md](docs/database.md) |
-| **2.3 Realtime (SSE + WebSocket)** | Done | [docs/realtime.md](docs/realtime.md) |
-| **Lean linking + security defaults** | Done | [docs/security.md](docs/security.md), lean linking above |
-| **Opt-in feature catalog** | Done | [docs/catalog.md](docs/catalog.md) |
+| Auth stack | Done | [docs/auth.md](docs/auth.md) |
+| Database / migrations | Done | [docs/database.md](docs/database.md) |
+| Realtime (SSE + WebSocket) | Done | [docs/realtime.md](docs/realtime.md) |
+| Lean linking + security defaults | Done | [docs/security.md](docs/security.md) |
+| Opt-in feature catalog | Done | [docs/catalog.md](docs/catalog.md) |
 
-## Changelog notes
+## What else (without overloading)
 
-### Lean linking (breaking for Redis / multi-driver apps)
-
-- `irmik/cache` and `irmik/session` no longer embed Redis. Blank-import `cache/redisx` / `session/redisx` (or call `Register()`).
-- `irmik/db` no longer blank-imports mysql + pgx + sqlite together. Import `irmik/db/sqlite`, `postgres`, or `mysql` explicitly.
-- Shims that would re-link Redis into core were **not** kept; use the packages above.
-
-### Security defaults
-
-- `irmik.New` always mounts baseline security headers (HSTS in production).
-- `EnableSecureDefaults()` / `EnableRateLimit()` for in-memory rate limiting; `middleware.LoginRateLimit` for auth routes.
-
-## Roadmap (later)
-
-`embed.FS` single-binary sites, richer i18n routing, Redis/asynq queue backend, fuller OpenAPI/Swagger UI, WebP encode without CGO.
+Low-cost, opt-in ideas (full cron/timezone, HTMX admin helpers, audit/CORS/logging presets, health dependency checks, `embed.FS`, i18n routing, OpenAPI codegen) — plus an explicit **do not add to core** list — live in **[docs/roadmap.md](docs/roadmap.md)**.
 
 ## License
 
-MIT (planned). StatiGo-inspired helpers are reimplementations; see `docs/statigo-lessons.md` for attribution.
+MIT. StatiGo-inspired helpers are reimplementations; see [docs/statigo-lessons.md](docs/statigo-lessons.md) for attribution.
