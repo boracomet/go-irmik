@@ -1,12 +1,12 @@
 <p align="center">
-  <img src="docs/assets/irmik-logo.png?v=2" alt="Irmik" width="320" />
+  <img src="docs/assets/irmik-logo-v2.png" alt="Irmik" width="320" />
 </p>
 
 # Irmik
 
 **Irmik** is a Next.js-inspired meta-framework for Go. It sits on [Gin](https://github.com/gin-gonic/gin) and gives you file-based routing, route-level rendering modes (SSR / SSG / ISR / Static / CSR), `html/template` pages, React/Vite islands, Markdown content collections, a small CLI, and an optional SQL data stack — without dragging in a full CMS.
 
-Brand mark lives at [`docs/assets/irmik-logo.png`](docs/assets/irmik-logo.png) (use for GitHub social preview if desired).
+Brand mark lives at [`docs/assets/irmik-logo-v2.png`](docs/assets/irmik-logo-v2.png) (use for GitHub social preview if desired).
 
 > **Türkçe özet:** Irmik, Gin üzerine kurulu, dosya tabanlı rotalar ve SSR/SSG/ISR modları sunan bir meta-framework’tür. Sayfalar `html/template`, etkileşimli parçalar React/Vite islands, içerik Markdown koleksiyonlarıdır. Phase 2.1 auth/session; Phase 2.2 SQL/migration; Phase 2.3 SSE/WebSocket.
 
