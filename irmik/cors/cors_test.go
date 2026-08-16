@@ -40,7 +40,7 @@ func TestCORSAllowOrigin(t *testing.T) {
 func TestCORSPreflight(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
-	r.Use(cors.Middleware(cors.Default()))
+	r.Use(cors.Middleware(cors.DefaultDev()))
 	r.POST("/api", func(c *gin.Context) { c.Status(http.StatusOK) })
 
 	w := httptest.NewRecorder()
@@ -56,5 +56,25 @@ func TestCORSPreflight(t *testing.T) {
 	}
 	if w.Header().Get("Access-Control-Allow-Origin") != "*" {
 		t.Fatalf("Allow-Origin=%q", w.Header().Get("Access-Control-Allow-Origin"))
+	}
+}
+
+func TestCORSWildcardCredentialsDoesNotReflectOrigin(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	opts := cors.DefaultDev()
+	opts.AllowCredentials = true
+	r.Use(cors.Middleware(opts))
+	r.GET("/api", func(c *gin.Context) { c.Status(http.StatusOK) })
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api", nil)
+	req.Header.Set("Origin", "https://untrusted.example")
+	r.ServeHTTP(w, req)
+	if got := w.Header().Get("Access-Control-Allow-Origin"); got != "" {
+		t.Fatalf("wildcard credentials reflected origin %q", got)
+	}
+	if got := w.Header().Get("Access-Control-Allow-Credentials"); got != "" {
+		t.Fatalf("unexpected credentials header %q", got)
 	}
 }

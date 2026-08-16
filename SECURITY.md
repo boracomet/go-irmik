@@ -35,7 +35,7 @@ Use placeholders (`REDACTED`, `dev-only-…`) instead.
 
 Operators should:
 
-1. Set a strong `IRMIK_JWT_SECRET` (never deploy demo defaults)
+1. Set a strong `IRMIK_JWT_SECRET` (never deploy demo defaults); non-development apps reject empty and known demo JWT secrets at startup.
 2. Enable Secure session cookies in production (`session.secure` / non-development default)
 3. Call `app.EnableSecureDefaults()` for admin UIs and use CSRF on cookie/session forms
 4. Serve over HTTPS; configure trusted proxies and WebSocket allowed origins

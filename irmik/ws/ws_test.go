@@ -17,7 +17,7 @@ func init() { gin.SetMode(gin.TestMode) }
 
 func TestUpgradeAndEcho(t *testing.T) {
 	r := gin.New()
-	r.GET("/ws", ws.Handler(ws.Options{}, func(c *ws.Conn) error {
+	r.GET("/ws", ws.Handler(ws.Options{Development: true}, func(c *ws.Conn) error {
 		_, msg, err := c.ReadMessage()
 		if err != nil {
 			return err
@@ -49,7 +49,7 @@ func TestUpgradeAndEcho(t *testing.T) {
 }
 
 func TestHubRoomBroadcast(t *testing.T) {
-	hub := ws.NewHub(ws.Options{})
+	hub := ws.NewHub(ws.Options{Development: true})
 	hub.Start()
 	defer hub.Close()
 
@@ -125,5 +125,31 @@ func TestCheckOriginRejects(t *testing.T) {
 	if resp != nil && resp.StatusCode != http.StatusForbidden {
 		// gorilla returns 403 on CheckOrigin failure
 		t.Logf("status=%d err=%v", resp.StatusCode, err)
+	}
+}
+
+func TestCheckOriginRejectsEmptyOriginWithAllowlist(t *testing.T) {
+	r := gin.New()
+	r.GET("/ws", ws.Handler(ws.Options{
+		AllowedOrigins: []string{"http://allowed.example"},
+	}, func(c *ws.Conn) error { return nil }))
+
+	srv := httptest.NewServer(r)
+	defer srv.Close()
+	u := "ws" + strings.TrimPrefix(srv.URL, "http") + "/ws"
+	if _, _, err := websocket.DefaultDialer.Dial(u, nil); err == nil {
+		t.Fatal("expected missing Origin rejection")
+	}
+}
+
+func TestCheckOriginRejectsEmptyAllowlistOutsideDevelopment(t *testing.T) {
+	r := gin.New()
+	r.GET("/ws", ws.Handler(ws.Options{}, func(c *ws.Conn) error { return nil }))
+
+	srv := httptest.NewServer(r)
+	defer srv.Close()
+	u := "ws" + strings.TrimPrefix(srv.URL, "http") + "/ws"
+	if _, _, err := websocket.DefaultDialer.Dial(u, http.Header{"Origin": []string{"http://app.example"}}); err == nil {
+		t.Fatal("expected empty allowlist rejection")
 	}
 }

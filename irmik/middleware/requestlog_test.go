@@ -68,7 +68,20 @@ func TestHealthWithChecks(t *testing.T) {
 	if w.Code != http.StatusServiceUnavailable {
 		t.Fatalf("ready status=%d body=%s", w.Code, w.Body.String())
 	}
-	if !strings.Contains(w.Body.String(), "db") {
-		t.Fatalf("body=%s", w.Body.String())
+	if strings.Contains(w.Body.String(), "db") {
+		t.Fatalf("readiness details leaked: %s", w.Body.String())
+	}
+}
+
+func TestRequestIDRejectsUnsafeClientValue(t *testing.T) {
+	r := gin.New()
+	r.Use(middleware.RequestID())
+	r.GET("/", func(c *gin.Context) { c.Status(http.StatusOK) })
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set(middleware.RequestIDHeader, "bad\r\nheader")
+	r.ServeHTTP(w, req)
+	if w.Header().Get(middleware.RequestIDHeader) == "bad\r\nheader" {
+		t.Fatal("unsafe request ID was reflected")
 	}
 }

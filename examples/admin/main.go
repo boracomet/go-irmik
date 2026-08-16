@@ -192,6 +192,8 @@ func main() {
 	// JWT API for external clients (Next.js, mobile, …).
 	api.MountV1(app.Engine, func(v1 *gin.RouterGroup) {
 		v1.POST("/token", middleware.LoginRateLimit(), s.handleAPIToken)
+		v1.POST("/token/refresh", middleware.LoginRateLimit(), s.handleAPIRefresh)
+		v1.POST("/token/revoke", authenticator.RequireJWT(), s.handleAPIRevoke)
 
 		items := v1.Group("/items")
 		items.Use(authenticator.RequireJWT())
@@ -446,16 +448,41 @@ func (s *server) handleAPIToken(c *gin.Context) {
 		return
 	}
 	au := auth.User{ID: u.ID, Email: u.Email, Roles: u.Roles}
-	tok, exp, err := s.auth.IssueAccessToken(au)
+	pair, err := s.auth.IssueTokenPair(au)
 	if err != nil {
 		api.Internal(c, err.Error())
 		return
 	}
 	api.JSON(c, http.StatusOK, gin.H{
-		"access_token": tok,
-		"token_type":   "Bearer",
-		"expires_at":   exp.UTC().Format(time.RFC3339),
+		"access_token":  pair.AccessToken,
+		"refresh_token": pair.RefreshToken,
+		"token_type":    "Bearer",
+		"expires_at":    pair.ExpiresAt.UTC().Format(time.RFC3339),
 	})
+}
+
+func (s *server) handleAPIRefresh(c *gin.Context) {
+	var body struct {
+		RefreshToken string `json:"refresh_token" validate:"required"`
+	}
+	if err := api.BindJSON(c, &body); err != nil {
+		api.AbortValidation(c, err)
+		return
+	}
+	for _, u := range s.byID {
+		pair, refreshErr := s.auth.Refresh(body.RefreshToken, auth.User{ID: u.ID, Email: u.Email, Roles: u.Roles})
+		if refreshErr == nil {
+			api.JSON(c, http.StatusOK, pair)
+			return
+		}
+	}
+	api.Abort(c, http.StatusUnauthorized, "unauthorized", "unauthorized")
+}
+
+func (s *server) handleAPIRevoke(c *gin.Context) {
+	u, _ := auth.UserFrom(c)
+	s.auth.RevokeUser(u.ID)
+	api.JSON(c, http.StatusOK, gin.H{"ok": true})
 }
 
 func (s *server) apiListItems(c *gin.Context) {

@@ -28,8 +28,8 @@ type Store interface {
 type Options struct {
 	// Name is the cookie name (default: irmik_session).
 	Name string
-	// Secret signs/encrypts cookie values when CookieSecure encoding is used.
-	// For opaque id cookies, Secret is unused by the store but recommended for CSRF.
+	// Secret is currently unused: session cookies carry opaque server-side IDs.
+	// It does not sign or encrypt the cookie.
 	Secret string
 	// MaxAge is the session lifetime (default: 24h).
 	MaxAge time.Duration

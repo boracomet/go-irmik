@@ -23,9 +23,9 @@ func Map() template.FuncMap {
 		"mod":            Mod,
 		"until":          Until,
 		"slugify":        slug.Slugify,
-		"safeHTML":       SafeHTML,
+		"unsafeHTML":     UnsafeHTML,
 		"safeURL":        SafeURL,
-		"prettyJSON":     PrettyJSON,
+		"unsafeJSON":     UnsafeJSON,
 		"formatDate":     FormatDate,
 		"formatDateTime": FormatDateTime,
 	}
@@ -84,11 +84,12 @@ func Until(n int) []int {
 	return out
 }
 
-func SafeHTML(s string) template.HTML { return template.HTML(s) }
-func SafeURL(s string) template.URL   { return template.URL(strings.TrimSpace(s)) }
+// UnsafeHTML bypasses template escaping. Add it explicitly only for trusted data.
+func UnsafeHTML(s string) template.HTML { return template.HTML(s) }
+func SafeURL(s string) template.URL     { return template.URL(strings.TrimSpace(s)) }
 
-// PrettyJSON returns indented JSON marked as template.JS (for script tags).
-func PrettyJSON(v any) template.JS {
+// UnsafeJSON returns indented JSON marked as template.JS for trusted script data.
+func UnsafeJSON(v any) template.JS {
 	b, err := json.MarshalIndent(v, "", "  ")
 	if err != nil {
 		return template.JS("{}")

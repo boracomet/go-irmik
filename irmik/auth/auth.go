@@ -5,6 +5,7 @@ package auth
 import (
 	"errors"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -43,6 +44,8 @@ type Config struct {
 	JWTIssuer string
 	// AccessTTL is JWT lifetime (default: 15m).
 	AccessTTL time.Duration
+	// RefreshTTL is the rotating refresh-token lifetime (default: 7d).
+	RefreshTTL time.Duration
 	// SessionUserKey overrides the session key for user id.
 	SessionUserKey string
 }
@@ -54,6 +57,9 @@ func (c Config) withDefaults() Config {
 	if c.AccessTTL <= 0 {
 		c.AccessTTL = 15 * time.Minute
 	}
+	if c.RefreshTTL <= 0 {
+		c.RefreshTTL = 7 * 24 * time.Hour
+	}
 	if c.SessionUserKey == "" {
 		c.SessionUserKey = sessionUserKey
 	}
@@ -62,12 +68,15 @@ func (c Config) withDefaults() Config {
 
 // Authenticator wires session login and JWT issuance.
 type Authenticator struct {
-	cfg Config
+	cfg     Config
+	refresh map[string]string
+	revoked map[string]struct{}
+	tokenMu sync.Mutex
 }
 
 // New returns an Authenticator.
 func New(cfg Config) *Authenticator {
-	return &Authenticator{cfg: cfg.withDefaults()}
+	return &Authenticator{cfg: cfg.withDefaults(), refresh: make(map[string]string), revoked: make(map[string]struct{})}
 }
 
 // Config returns a copy of the auth config.

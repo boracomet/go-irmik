@@ -52,8 +52,30 @@ func TestJWTIssueParse(t *testing.T) {
 	if claims.UserID != "u1" || claims.Email != "u@example.com" {
 		t.Fatalf("%+v", claims)
 	}
+	if claims.ID == "" {
+		t.Fatal("access token is missing jti")
+	}
 	if _, err := a.ParseAccessToken(tok + "x"); err != auth.ErrInvalidToken {
 		t.Fatalf("want ErrInvalidToken, got %v", err)
+	}
+}
+
+func TestRefreshTokenRotates(t *testing.T) {
+	a := auth.New(auth.Config{JWTSecret: "test-secret-at-least-32-chars-long!!", JWTIssuer: "irmik-test"})
+	u := auth.User{ID: "u1", Email: "u@example.com"}
+	pair, err := a.IssueTokenPair(u)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := a.Refresh(pair.RefreshToken, u); err != nil {
+		t.Fatalf("refresh: %v", err)
+	}
+	if _, err := a.Refresh(pair.RefreshToken, u); err == nil {
+		t.Fatal("old refresh token was accepted")
+	}
+	a.RevokeUser(u.ID)
+	if _, err := a.Refresh(pair.RefreshToken, u); err == nil {
+		t.Fatal("revoked user refresh token was accepted")
 	}
 }
 

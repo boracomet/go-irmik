@@ -32,7 +32,10 @@ realtime:
 |----------|--------|
 | `IRMIK_WS_ALLOWED_ORIGINS` | comma-separated `realtime.allowedOrigins` |
 
-Empty origins → WebSocket `CheckOrigin` allows all (dev-friendly). Pass them into `ws.Options` / `ws.NewHub`.
+Empty origins are allowed only when `ws.Options.Development` is true. Production
+must configure explicit origins, and a request without an `Origin` header is
+rejected when an allowlist is configured; non-browser clients need an explicit
+`CheckOrigin` policy.
 
 ## SSE
 
@@ -74,7 +77,7 @@ app.Engine.GET("/stream", sse.Handler(sse.Options{}, func(s *sse.Stream) error {
 ```go
 import "github.com/boracomet/go-irmik/irmik/ws"
 
-opts := ws.Options{AllowedOrigins: cfg.Realtime.AllowedOrigins}
+opts := ws.Options{AllowedOrigins: cfg.Realtime.AllowedOrigins, Development: cfg.IsDev()}
 
 // Echo
 app.Engine.GET("/ws/echo", ws.Handler(opts, func(c *ws.Conn) error {

@@ -38,9 +38,20 @@ type Store struct {
 	files map[string]map[string]string
 }
 
+// Options controls Markdown rendering. Raw HTML is escaped unless UnsafeHTML is
+// explicitly set for trusted-author content.
+type Options struct {
+	UnsafeHTML bool
+}
+
 // Load scans dir for content/<collection>/**/*.md and indexes them.
 // dir itself is the content root (e.g. "./content").
 func Load(dir string) (*Store, error) {
+	return LoadWithOptions(dir, Options{})
+}
+
+// LoadWithOptions is Load with explicit Markdown rendering options.
+func LoadWithOptions(dir string, opts Options) (*Store, error) {
 	abs, err := filepath.Abs(dir)
 	if err != nil {
 		return nil, fmt.Errorf("content: resolve %q: %w", dir, err)
@@ -55,7 +66,7 @@ func Load(dir string) (*Store, error) {
 
 	s := &Store{
 		root:  abs,
-		md:    defaultMarkdown(),
+		md:    markdown(opts.UnsafeHTML),
 		files: make(map[string]map[string]string),
 	}
 	err = filepath.WalkDir(abs, func(path string, d fs.DirEntry, walkErr error) error {
@@ -178,6 +189,15 @@ func RenderMarkdown(src []byte) (string, error) {
 	return buf.String(), nil
 }
 
+// RenderMarkdownUnsafe renders raw HTML for trusted-author content only.
+func RenderMarkdownUnsafe(src []byte) (string, error) {
+	var buf bytes.Buffer
+	if err := markdown(true).Convert(src, &buf); err != nil {
+		return "", fmt.Errorf("content: markdown: %w", err)
+	}
+	return buf.String(), nil
+}
+
 func loadDocument[T any](s *Store, collection, slug, path string) (*Document[T], error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -211,10 +231,19 @@ func (s *Store) render(src []byte) (string, error) {
 }
 
 func defaultMarkdown() goldmark.Markdown {
-	return goldmark.New(
+	return markdown(false)
+}
+
+func markdown(unsafeHTML bool) goldmark.Markdown {
+	renderer := []goldmark.Option{
 		goldmark.WithExtensions(extension.GFM),
 		goldmark.WithParserOptions(parser.WithAutoHeadingID()),
-		goldmark.WithRendererOptions(html.WithUnsafe()),
+	}
+	if unsafeHTML {
+		renderer = append(renderer, goldmark.WithRendererOptions(html.WithUnsafe()))
+	}
+	return goldmark.New(
+		renderer...,
 	)
 }
 

@@ -23,8 +23,11 @@ const (
 // Options configures upgrade and connection pumps.
 type Options struct {
 	// AllowedOrigins lists exact Origin values (scheme+host[+port]).
-	// Empty + CheckOrigin nil → allow all (dev-friendly).
+	// Empty rejects browser upgrades unless Development is true.
 	AllowedOrigins []string
+	// Development permits any origin when AllowedOrigins is empty. Set this from
+	// config.Config.IsDev() for local demos; production remains fail-closed.
+	Development bool
 	// CheckOrigin overrides AllowedOrigins when set.
 	CheckOrigin func(r *http.Request) bool
 	// ReadBufferSize / WriteBufferSize passed to the upgrader (0 = library default).
@@ -91,12 +94,12 @@ func checkOriginFunc(opts Options) func(*http.Request) bool {
 		}
 	}
 	if len(allowed) == 0 {
-		return func(*http.Request) bool { return true }
+		return func(*http.Request) bool { return opts.Development }
 	}
 	return func(r *http.Request) bool {
 		origin := r.Header.Get("Origin")
 		if origin == "" {
-			return true
+			return false
 		}
 		if _, ok := allowed[origin]; ok {
 			return true

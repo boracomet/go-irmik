@@ -118,6 +118,16 @@ func TestDecodeHelper(t *testing.T) {
 	}
 }
 
+func TestRenderMarkdownEscapesRawHTMLByDefault(t *testing.T) {
+	out, err := content.RenderMarkdown([]byte("<script>alert('x')</script>"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(out, "<script>") {
+		t.Fatalf("raw HTML was rendered: %q", out)
+	}
+}
+
 func TestUnknownCollection(t *testing.T) {
 	root := t.TempDir()
 	if err := os.MkdirAll(filepath.Join(root, "posts"), 0o755); err != nil {

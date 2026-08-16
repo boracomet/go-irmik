@@ -45,17 +45,17 @@ type ServerConfig struct {
 }
 
 type CacheConfig struct {
-	Driver string `yaml:"driver"` // memory | disk | redis
-	TTL    time.Duration `yaml:"ttl"`
-	DiskDir string `yaml:"diskDir"`
-	RedisURL string `yaml:"redisURL"`
+	Driver   string        `yaml:"driver"` // memory | disk | redis
+	TTL      time.Duration `yaml:"ttl"`
+	DiskDir  string        `yaml:"diskDir"`
+	RedisURL string        `yaml:"redisURL"`
 }
 
 type BuildConfig struct {
-	OutDir     string `yaml:"outDir"`
-	PublicDir  string `yaml:"publicDir"`
-	AppDir     string `yaml:"appDir"`
-	Templates  string `yaml:"templates"`
+	OutDir    string `yaml:"outDir"`
+	PublicDir string `yaml:"publicDir"`
+	AppDir    string `yaml:"appDir"`
+	Templates string `yaml:"templates"`
 }
 
 type ContentConfig struct {
@@ -148,7 +148,7 @@ func Default() Config {
 			BaseURL: "http://localhost:8080",
 		},
 		Server: ServerConfig{
-			Host:            "0.0.0.0",
+			Host:            "127.0.0.1",
 			Port:            8080,
 			ReadTimeout:     15 * time.Second,
 			WriteTimeout:    30 * time.Second,

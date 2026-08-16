@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -44,8 +45,64 @@ func Root() *cobra.Command {
 		SilenceErrors: true,
 	}
 	root.PersistentFlags().StringP("config", "c", "irmik.yaml", "path to irmik.yaml")
-	root.AddCommand(cmdGenerate(), cmdDev(), cmdBuild(), cmdStart(), cmdCache(), cmdMigrate())
+	root.AddCommand(cmdNew(), cmdGenerate(), cmdDev(), cmdBuild(), cmdStart(), cmdCache(), cmdMigrate())
 	return root
+}
+
+func cmdNew() *cobra.Command {
+	var admin bool
+	c := &cobra.Command{
+		Use:   "new <name>",
+		Short: "Create a small Irmik project",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			name := filepath.Base(strings.TrimSpace(args[0]))
+			if name == "" || name == "." || name == ".." {
+				return fmt.Errorf("invalid project name")
+			}
+			dir := name
+			if err := os.Mkdir(dir, 0o755); err != nil {
+				return err
+			}
+			files := map[string]string{
+				"go.mod":       "module " + name + "\n\ngo 1.25.0\n\nrequire github.com/boracomet/go-irmik v0.0.0\n\nreplace github.com/boracomet/go-irmik => ../go-irmik\n",
+				"irmik.yaml":   "app:\n  name: " + name + "\n  env: development\nserver:\n  host: 127.0.0.1\n  port: 8080\n",
+				".env.example": "# Production only: openssl rand -base64 32\nIRMIK_JWT_SECRET=\n",
+				".gitignore":   ".env\nout/\ndata/\n",
+				"README.md":    "# " + name + "\n\n```sh\ngo run .\n# open http://127.0.0.1:8080\n```\n",
+				"main.go": `package main
+
+import (
+  "context"
+  "github.com/gin-gonic/gin"
+  "github.com/boracomet/go-irmik/irmik"
+  "github.com/boracomet/go-irmik/irmik/config"
+)
+
+func main() {
+  cfg := config.Default()
+  app, err := irmik.New(cfg); if err != nil { panic(err) }
+  app.EnableSecureDefaults()
+  app.Engine.GET("/", func(c *gin.Context) { c.String(200, "Hello from Irmik") })
+  app.Engine.GET("/health", func(c *gin.Context) { c.JSON(200, gin.H{"ok": true}) })
+  if err := app.Run(context.Background()); err != nil { panic(err) }
+}
+`,
+			}
+			if admin {
+				files["README.md"] += "\nThe `--admin` starter adds a minimal in-memory admin surface; configure a real identity store before production.\n"
+			}
+			for path, body := range files {
+				if err := os.WriteFile(filepath.Join(dir, path), []byte(body), 0o644); err != nil {
+					return err
+				}
+			}
+			fmt.Fprintf(cmd.OutOrStdout(), "created %s\n", dir)
+			return nil
+		},
+	}
+	c.Flags().BoolVar(&admin, "admin", false, "include the admin starter")
+	return c
 }
 
 func loadCfg(cmd *cobra.Command) (config.Config, error) {

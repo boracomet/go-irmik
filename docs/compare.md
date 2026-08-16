@@ -25,6 +25,13 @@ Fair, high-level comparison. “Yes” means first-class or documented in-tree h
 | **Buffalo** | Rails-like Go ecosystem (CLI, Pop, Plush, webpack) — opinionated full stack, not lean-link. |
 | **Fiber** | Express-inspired API framework on fasthttp — speed-oriented, not SSR-mode oriented. |
 
+## Adjacent tools
+
+- **PocketBase** is a single binary with built-in data and an admin UI; Irmik does not provide either data model.
+- **Ent** is schema-driven code generation; Irmik supports SQL and migrations but is not an ORM generator.
+- **chi + templ** is a small, idiomatic composition for teams that want to assemble their own stack; Irmik has more conventions.
+- **Next.js BFF** keeps browser cookies and UI at the edge while Irmik provides an API. Islands are not a replacement for Next App Router.
+
 ## What Irmik deliberately is *not*
 
 - Not a CMS.

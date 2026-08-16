@@ -13,6 +13,7 @@ Irmik stays lean by default, but admin-facing apps should turn on the security h
 | `Referrer-Policy` | `strict-origin-when-cross-origin` |
 | `Permissions-Policy` | `camera=(), microphone=(), geolocation=()` |
 | `Strict-Transport-Security` | set in **production** (`max-age=31536000; includeSubDomains`) |
+| `Content-Security-Policy` | production adds `frame-ancestors 'none'`; script policies remain opt-in so islands can use their own nonce policy |
 
 Customize or replace with CSP framing:
 
@@ -56,7 +57,7 @@ Keys default to `c.ClientIP()` (honors Gin trusted proxies).
 
 | Setting | Guidance |
 |---------|----------|
-| `auth.jwtSecret` / `IRMIK_JWT_SECRET` | **Required** for JWT. Use a long random secret. Never deploy example defaults like `dev-only-change-me-…`. |
+| `auth.jwtSecret` / `IRMIK_JWT_SECRET` | **Required** outside development. Startup rejects empty and known demo values; use a long random secret. |
 | `session.secure` | Cookie `Secure` flag. If omitted, Irmik sets Secure when env is **not** `development`. Force `true` behind HTTPS. |
 | `session` secret / Redis URL | Prefer env (`IRMIK_SESSION_SECRET`, `REDIS_URL`); do not commit real values. |
 

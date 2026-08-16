@@ -26,11 +26,10 @@ type Options struct {
 	MaxAge int
 }
 
-// Default returns permissive-dev-friendly options (any origin, common methods/headers).
-// Prefer explicit AllowOrigins in production.
+// Default returns common methods and headers but no permitted origins. Add explicit
+// AllowOrigins before mounting it in an application.
 func Default() Options {
 	return Options{
-		AllowOrigins: []string{"*"},
 		AllowMethods: []string{
 			http.MethodGet, http.MethodPost, http.MethodPut,
 			http.MethodPatch, http.MethodDelete, http.MethodHead, http.MethodOptions,
@@ -38,6 +37,14 @@ func Default() Options {
 		AllowHeaders: []string{"Accept", "Authorization", "Content-Type", "X-Request-ID"},
 		MaxAge:       600,
 	}
+}
+
+// DefaultDev returns permissive local-development options. It must not be used
+// with credentials; Middleware will not reflect origins for that combination.
+func DefaultDev() Options {
+	opts := Default()
+	opts.AllowOrigins = []string{"*"}
+	return opts
 }
 
 // Middleware returns Gin CORS middleware from opts.
@@ -68,9 +75,6 @@ func Middleware(opts Options) gin.HandlerFunc {
 			if allowAll && !opts.AllowCredentials {
 				allowed = "*"
 			} else if _, ok := origins[origin]; ok {
-				allowed = origin
-			} else if allowAll && opts.AllowCredentials {
-				// Reflect origin when credentials + wildcard requested.
 				allowed = origin
 			}
 			if allowed != "" {

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
+	"strings"
 )
 
 // Provider is a pluggable OAuth2 provider (Google, GitHub, …).
@@ -71,7 +72,10 @@ func (p *StubProvider) AuthCodeURL(state string) string {
 
 // Exchange implements Provider.
 func (p *StubProvider) Exchange(_ context.Context, code string) (*OAuthUser, error) {
-	if code == "demo" || code == "" {
+	if strings.TrimSpace(code) == "" {
+		return nil, errors.New("auth: stub oauth code is required")
+	}
+	if code == "demo" {
 		u := p.DemoUser
 		if u.ID == "" {
 			u = OAuthUser{

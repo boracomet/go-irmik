@@ -10,6 +10,7 @@
 package api
 
 import (
+	"log/slog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -127,10 +128,11 @@ func Forbidden(c *gin.Context, message string) {
 	Abort(c, http.StatusForbidden, "forbidden", message)
 }
 
-// Internal aborts with 500 internal_error.
+// Internal logs diagnostic detail and sends a generic 500 response. Do not pass
+// its message through to clients: handlers may supply database or filesystem errors.
 func Internal(c *gin.Context, message string) {
-	if message == "" {
-		message = "internal error"
+	if message != "" {
+		slog.Error("internal API error", "error", message)
 	}
-	Abort(c, http.StatusInternalServerError, "internal_error", message)
+	Abort(c, http.StatusInternalServerError, "internal_error", "internal error")
 }

@@ -59,35 +59,12 @@ curl -s -X POST -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/
   http://127.0.0.1:8080/api/v1/items
 ```
 
-### Next.js (App Router) sketch
+### Next.js BFF
 
-CORS allows `http://localhost:3000` in this demo.
-
-```ts
-// lib/irmik.ts
-const API = process.env.IRMIK_API_URL ?? "http://127.0.0.1:8080";
-
-export async function login(email: string, password: string) {
-  const res = await fetch(`${API}/api/v1/token`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
-  });
-  if (!res.ok) throw new Error("login failed");
-  return res.json() as Promise<{ access_token: string; expires_at: string }>;
-}
-
-export async function listItems(token: string) {
-  const res = await fetch(`${API}/api/v1/items`, {
-    headers: { Authorization: `Bearer ${token}` },
-    cache: "no-store",
-  });
-  if (!res.ok) throw new Error("list failed");
-  return res.json();
-}
-```
-
-Store the access token in an httpOnly cookie or server session — never expose long-lived secrets to the browser without XSS protections.
+See [`next`](next). Its server route handlers call Irmik and store the access
+token in an `httpOnly` cookie. Client components fetch only `/api/items`; they
+never see a Bearer token or the Irmik URL. Browser-to-Irmik CORS is only needed
+without this BFF pattern.
 
 ## Security wiring
 

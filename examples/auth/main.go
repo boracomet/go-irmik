@@ -136,7 +136,7 @@ func main() {
 		},
 	)
 
-	app.Engine.POST("/token", func(c *gin.Context) {
+	app.Engine.POST("/token", middleware.LoginRateLimit(), func(c *gin.Context) {
 		var body loginBody
 		if err := validate.BindJSON(c, &body); err != nil {
 			validate.Abort(c, err)

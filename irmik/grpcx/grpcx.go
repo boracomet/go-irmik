@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"sync"
 	"time"
 
 	"google.golang.org/grpc"
@@ -36,6 +37,7 @@ type Server struct {
 	GRPC *grpc.Server
 	lis  net.Listener
 	addr string
+	mu   sync.RWMutex
 }
 
 // NewServer builds a gRPC server (does not listen yet).
@@ -65,7 +67,10 @@ func (s *Server) ListenAndServe(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("grpcx: listen: %w", err)
 	}
+	s.mu.Lock()
 	s.lis = lis
+	s.addr = lis.Addr().String()
+	s.mu.Unlock()
 	errCh := make(chan error, 1)
 	go func() {
 		errCh <- s.GRPC.Serve(lis)
@@ -90,9 +95,8 @@ func (s *Server) ListenAndServe(ctx context.Context) error {
 
 // Addr returns the bound address once listening, else the configured addr.
 func (s *Server) Addr() string {
-	if s.lis != nil {
-		return s.lis.Addr().String()
-	}
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	return s.addr
 }
 

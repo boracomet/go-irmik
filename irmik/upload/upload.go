@@ -23,6 +23,8 @@ type Options struct {
 	Field string
 	// AllowedMIME, when non-empty, restricts Content-Type / detected MIME.
 	AllowedMIME []string
+	// AllowAnyMIME disables the conservative default allowlist.
+	AllowAnyMIME bool
 	// DestDir is where Save writes files. Required for Save / Handler.
 	DestDir string
 }
@@ -34,6 +36,9 @@ func (o Options) withDefaults() Options {
 	if o.Field == "" {
 		o.Field = "file"
 	}
+	if len(o.AllowedMIME) == 0 && !o.AllowAnyMIME {
+		o.AllowedMIME = []string{"image/jpeg", "image/png", "image/webp", "application/pdf"}
+	}
 	return o
 }
 
@@ -43,7 +48,7 @@ type File struct {
 	Size        int64
 	ContentType string
 	// Path is set after Save.
-	Path string
+	Path   string
 	Header *multipart.FileHeader
 }
 
@@ -110,7 +115,7 @@ func Save(c *gin.Context, opts Options) (*File, error) {
 	}
 	defer src.Close()
 
-	out, err := os.OpenFile(dest, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o644)
+	out, err := os.OpenFile(dest, os.O_CREATE|os.O_WRONLY|os.O_EXCL, 0o644)
 	if err != nil {
 		return nil, fmt.Errorf("upload: create: %w", err)
 	}
@@ -147,7 +152,6 @@ func Handler(opts Options) gin.HandlerFunc {
 			"filename":     f.Filename,
 			"size":         f.Size,
 			"content_type": f.ContentType,
-			"path":         f.Path,
 		})
 	}
 }
@@ -163,9 +167,6 @@ func safeName(name string) string {
 }
 
 func mimeAllowed(ct string, allowed []string) bool {
-	if len(allowed) == 0 {
-		return true
-	}
 	ct = strings.ToLower(strings.TrimSpace(strings.Split(ct, ";")[0]))
 	for _, a := range allowed {
 		a = strings.ToLower(strings.TrimSpace(a))

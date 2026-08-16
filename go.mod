@@ -1,6 +1,6 @@
 module github.com/boracomet/go-irmik
 
-go 1.26.3
+go 1.25.0
 
 require (
 	github.com/adrg/frontmatter v0.2.0

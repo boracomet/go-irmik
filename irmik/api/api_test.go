@@ -127,6 +127,7 @@ func TestHelpers(t *testing.T) {
 	r.GET("/401", func(c *gin.Context) { api.Unauthorized(c, "") })
 	r.GET("/403", func(c *gin.Context) { api.Forbidden(c, "") })
 	r.GET("/500", func(c *gin.Context) { api.Internal(c, "") })
+	r.GET("/hidden-error", func(c *gin.Context) { api.Internal(c, "database connection refused") })
 
 	cases := []struct {
 		path string
@@ -149,5 +150,11 @@ func TestHelpers(t *testing.T) {
 		if env.Error.Code != tc.err {
 			t.Fatalf("%s code=%q", tc.path, env.Error.Code)
 		}
+	}
+
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/hidden-error", nil))
+	if strings.Contains(w.Body.String(), "database connection refused") {
+		t.Fatal("internal error detail leaked to client")
 	}
 }

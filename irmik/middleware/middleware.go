@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -28,13 +29,26 @@ func Recovery() gin.HandlerFunc {
 func RequestID() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id := c.GetHeader(RequestIDHeader)
-		if id == "" {
+		if !validRequestID(id) {
 			id = newRequestID()
 		}
 		c.Set(requestIDKey, id)
 		c.Writer.Header().Set(RequestIDHeader, id)
 		c.Next()
 	}
+}
+
+func validRequestID(id string) bool {
+	if len(id) == 0 || len(id) > 128 {
+		return false
+	}
+	for _, r := range id {
+		if !(r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' ||
+			strings.ContainsRune("-_.", r)) {
+			return false
+		}
+	}
+	return true
 }
 
 // GetRequestID returns the request id stored by RequestID middleware.
@@ -57,6 +71,8 @@ type HealthConfig struct {
 	// Checks are optional dependency probes. Required failures make /ready 503.
 	// /health stays liveness-only (always 200 when the process is up).
 	Checks *health.Registry
+	// ExposeDetails returns dependency check results. Leave false in production.
+	ExposeDetails bool
 }
 
 // Health registers /health and /ready on the engine.
@@ -76,16 +92,18 @@ func HealthWith(r gin.IRoutes, cfg HealthConfig) {
 	})
 	r.GET("/ready", func(c *gin.Context) {
 		ok := cfg.Ready == nil || cfg.Ready()
-		body := gin.H{"status": "ready"}
+		body := gin.H{"ok": true}
 		if cfg.Checks != nil {
 			checksOK, results := cfg.Checks.Evaluate(c.Request.Context())
-			body["checks"] = results
+			if cfg.ExposeDetails {
+				body["checks"] = results
+			}
 			if !checksOK {
 				ok = false
 			}
 		}
 		if !ok {
-			body["status"] = "not_ready"
+			body = gin.H{"ok": false}
 			c.JSON(http.StatusServiceUnavailable, body)
 			return
 		}

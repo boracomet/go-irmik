@@ -31,7 +31,7 @@ func main() {
 		fatal(err)
 	}
 
-	wsOpts := ws.Options{AllowedOrigins: cfg.Realtime.AllowedOrigins}
+	wsOpts := ws.Options{AllowedOrigins: cfg.Realtime.AllowedOrigins, Development: cfg.IsDev()}
 	sseHub := sse.NewHub()
 	chatHub := ws.NewHub(wsOpts)
 	chatHub.Start()

@@ -2,11 +2,13 @@ package irmik
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"html/template"
 	"log/slog"
 	"net/http"
 	"os"
+	"strings"
 	"sync/atomic"
 
 	"github.com/gin-gonic/gin"
@@ -56,6 +58,9 @@ type MountOptions struct {
 // New constructs an App from cfg: Gin engine, default middleware, health
 // routes, cache store, and an empty plugin registry.
 func New(cfg config.Config) (*App, error) {
+	if !cfg.IsDev() && weakSecret(cfg.Auth.JWTSecret) {
+		return nil, errors.New("irmik: auth.jwtSecret must be set to a non-demo value outside development")
+	}
 	if cfg.IsDev() {
 		gin.SetMode(gin.DebugMode)
 	} else {
@@ -80,12 +85,17 @@ func New(cfg config.Config) (*App, error) {
 	if !cfg.IsDev() {
 		sec.HSTSMaxAge = 31536000
 		sec.HSTSIncludeSubdomains = true
+		sec.FrameAncestors = "'none'"
 	}
 	engine.Use(middleware.SecureHeaders(sec))
 
 	if len(cfg.Server.TrustedProxies) > 0 {
 		if err := engine.SetTrustedProxies(cfg.Server.TrustedProxies); err != nil {
 			return nil, fmt.Errorf("irmik: trustedProxies: %w", err)
+		}
+	} else if !cfg.IsDev() {
+		if err := engine.SetTrustedProxies(nil); err != nil {
+			return nil, fmt.Errorf("irmik: disable trusted proxies: %w", err)
 		}
 	}
 
@@ -102,6 +112,15 @@ func New(cfg config.Config) (*App, error) {
 		Checks: app.readyChecks,
 	})
 	return app, nil
+}
+
+func weakSecret(secret string) bool {
+	switch strings.TrimSpace(secret) {
+	case "", "dev-only-change-me-jwt-secret-32b", "change-me", "secret", "password123":
+		return true
+	default:
+		return false
+	}
 }
 
 // EnableSecureDefaults turns on admin-oriented protections beyond baseline headers:
