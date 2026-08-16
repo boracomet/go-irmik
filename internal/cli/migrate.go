@@ -43,7 +43,7 @@ func cmdMigrateUp() *cobra.Command {
 				runErr = m.Up()
 			}
 			if errors.Is(runErr, migrate.ErrNoChange) {
-				fmt.Fprintln(cmd.OutOrStdout(), "migrate: already up to date")
+				_, _ = fmt.Fprintln(cmd.OutOrStdout(), "migrate: already up to date")
 				return nil
 			}
 			if runErr != nil {
@@ -53,7 +53,7 @@ func cmdMigrateUp() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			fmt.Fprintf(cmd.OutOrStdout(), "migrate: up to version %d\n", st.Version)
+			_, _ = fmt.Fprintf(cmd.OutOrStdout(), "migrate: up to version %d\n", st.Version)
 			return nil
 		},
 	}
@@ -82,7 +82,7 @@ func cmdMigrateDown() *cobra.Command {
 				runErr = m.Down()
 			}
 			if errors.Is(runErr, migrate.ErrNoChange) {
-				fmt.Fprintln(cmd.OutOrStdout(), "migrate: nothing to roll back")
+				_, _ = fmt.Fprintln(cmd.OutOrStdout(), "migrate: nothing to roll back")
 				return nil
 			}
 			if runErr != nil {
@@ -93,10 +93,10 @@ func cmdMigrateDown() *cobra.Command {
 				return err
 			}
 			if st.Empty {
-				fmt.Fprintln(cmd.OutOrStdout(), "migrate: down to empty schema")
+				_, _ = fmt.Fprintln(cmd.OutOrStdout(), "migrate: down to empty schema")
 				return nil
 			}
-			fmt.Fprintf(cmd.OutOrStdout(), "migrate: down to version %d\n", st.Version)
+			_, _ = fmt.Fprintf(cmd.OutOrStdout(), "migrate: down to version %d\n", st.Version)
 			return nil
 		},
 	}
@@ -119,14 +119,14 @@ func cmdMigrateStatus() *cobra.Command {
 				return err
 			}
 			if st.Empty {
-				fmt.Fprintln(cmd.OutOrStdout(), "migrate: no version (empty)")
+				_, _ = fmt.Fprintln(cmd.OutOrStdout(), "migrate: no version (empty)")
 				return nil
 			}
 			dirty := "clean"
 			if st.Dirty {
 				dirty = "dirty"
 			}
-			fmt.Fprintf(cmd.OutOrStdout(), "migrate: version %d (%s)\n", st.Version, dirty)
+			_, _ = fmt.Fprintf(cmd.OutOrStdout(), "migrate: version %d (%s)\n", st.Version, dirty)
 			return nil
 		},
 	}
@@ -150,7 +150,7 @@ func cmdMigrateCreate() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			fmt.Fprintf(cmd.OutOrStdout(), "created %s\ncreated %s\n", up, down)
+			_, _ = fmt.Fprintf(cmd.OutOrStdout(), "created %s\ncreated %s\n", up, down)
 			return nil
 		},
 	}

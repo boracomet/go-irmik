@@ -24,7 +24,7 @@ func TestLocalRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer rc.Close()
+	defer func() { _ = rc.Close() }()
 	data, _ := io.ReadAll(rc)
 	if string(data) != "hi" || got.ContentType != "text/plain" {
 		t.Fatalf("get = %q %+v", data, got)

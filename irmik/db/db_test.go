@@ -20,7 +20,7 @@ func TestOpenSQLiteTempFile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Open: %v", err)
 	}
-	defer database.Close()
+	defer func() { _ = database.Close() }()
 
 	if got := database.Driver(); got != "sqlite" {
 		t.Fatalf("Driver = %q, want sqlite", got)
@@ -45,7 +45,7 @@ func TestOpenFromConfig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("OpenFromConfig: %v", err)
 	}
-	defer database.Close()
+	defer func() { _ = database.Close() }()
 }
 
 func TestOpenRejectsEmptyDSN(t *testing.T) {

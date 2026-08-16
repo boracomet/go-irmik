@@ -113,13 +113,13 @@ func Save(c *gin.Context, opts Options) (*File, error) {
 	if err != nil {
 		return nil, fmt.Errorf("upload: open: %w", err)
 	}
-	defer src.Close()
+	defer func() { _ = src.Close() }()
 
 	out, err := os.OpenFile(dest, os.O_CREATE|os.O_WRONLY|os.O_EXCL, 0o644)
 	if err != nil {
 		return nil, fmt.Errorf("upload: create: %w", err)
 	}
-	defer out.Close()
+	defer func() { _ = out.Close() }()
 
 	n, err := io.Copy(out, io.LimitReader(src, opts.MaxBytes+1))
 	if err != nil {
@@ -188,7 +188,7 @@ func sniffMIME(fh *multipart.FileHeader) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	buf := make([]byte, 512)
 	n, err := f.Read(buf)
 	if err != nil && err != io.EOF {

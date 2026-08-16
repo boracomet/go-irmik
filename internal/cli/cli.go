@@ -97,7 +97,7 @@ func main() {
 					return err
 				}
 			}
-			fmt.Fprintf(cmd.OutOrStdout(), "created %s\n", dir)
+			_, _ = fmt.Fprintf(cmd.OutOrStdout(), "created %s\n", dir)
 			return nil
 		},
 	}
@@ -137,7 +137,7 @@ func cmdGenerate() *cobra.Command {
 			}); err != nil {
 				return err
 			}
-			fmt.Fprintf(cmd.OutOrStdout(), "wrote %s\n", outFile)
+			_, _ = fmt.Fprintf(cmd.OutOrStdout(), "wrote %s\n", outFile)
 			return nil
 		},
 	}
@@ -169,7 +169,7 @@ func cmdCache() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			defer store.Close()
+			defer func() { _ = store.Close() }()
 			ctx := cmd.Context()
 			if ctx == nil {
 				ctx = context.Background()
@@ -177,7 +177,7 @@ func cmdCache() *cobra.Command {
 			if err := store.Clear(ctx); err != nil {
 				return err
 			}
-			fmt.Fprintf(cmd.OutOrStdout(), "cache cleared (driver=%s)\n", cfg.CacheDriver())
+			_, _ = fmt.Fprintf(cmd.OutOrStdout(), "cache cleared (driver=%s)\n", cfg.CacheDriver())
 			return nil
 		},
 	}
@@ -199,7 +199,7 @@ func cmdBuild() *cobra.Command {
 			// Build islands first so MountPages can load the Vite manifest.
 			if cfg.Islands.Enabled {
 				if err := runIslandsBuild(cmd.OutOrStdout(), cfg); err != nil {
-					fmt.Fprintf(cmd.ErrOrStderr(), "islands build warning: %v\n", err)
+					_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "islands build warning: %v\n", err)
 				}
 			}
 
@@ -227,12 +227,12 @@ func cmdBuild() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			fmt.Fprintf(cmd.OutOrStdout(), "build: wrote %d file(s)\n", len(res.Wrote))
+			_, _ = fmt.Fprintf(cmd.OutOrStdout(), "build: wrote %d file(s)\n", len(res.Wrote))
 			for _, f := range res.Wrote {
-				fmt.Fprintf(cmd.OutOrStdout(), "  %s\n", f)
+				_, _ = fmt.Fprintf(cmd.OutOrStdout(), "  %s\n", f)
 			}
 			for _, s := range res.Skipped {
-				fmt.Fprintf(cmd.OutOrStdout(), "  skip %s\n", s)
+				_, _ = fmt.Fprintf(cmd.OutOrStdout(), "  skip %s\n", s)
 			}
 			return nil
 		},
@@ -242,17 +242,17 @@ func cmdBuild() *cobra.Command {
 
 func runIslandsBuild(w io.Writer, cfg config.Config) error {
 	if _, err := os.Stat("package.json"); err != nil {
-		fmt.Fprintln(w, "islands: no package.json — skip Vite build")
+		_, _ = fmt.Fprintln(w, "islands: no package.json — skip Vite build")
 		return nil
 	}
-	fmt.Fprintln(w, "islands: running npm run build…")
+	_, _ = fmt.Fprintln(w, "islands: running npm run build…")
 	cmd := exec.Command("npm", "run", "build")
 	cmd.Stdout = w
 	cmd.Stderr = w
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("npm run build: %w", err)
 	}
-	fmt.Fprintf(w, "islands: built → %s\n", cfg.Islands.OutDir)
+	_, _ = fmt.Fprintf(w, "islands: built → %s\n", cfg.Islands.OutDir)
 	return nil
 }
 
@@ -288,7 +288,7 @@ func cmdStart() *cobra.Command {
 
 			ctx, stop := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGTERM)
 			defer stop()
-			fmt.Fprintf(cmd.OutOrStdout(), "irmik start listening on %s\n", cfg.Addr())
+			_, _ = fmt.Fprintf(cmd.OutOrStdout(), "irmik start listening on %s\n", cfg.Addr())
 			return app.Run(ctx)
 		},
 	}
@@ -336,21 +336,21 @@ func cmdDev() *cobra.Command {
 					Extensions: []string{".html", ".yaml", ".yml"},
 					Debounce:   200 * time.Millisecond,
 				}, func(ev hmr.Event) {
-					fmt.Fprintf(cmd.OutOrStdout(), "hmr: %s (%s)\n", ev.Path, ev.Op)
+					_, _ = fmt.Fprintf(cmd.OutOrStdout(), "hmr: %s (%s)\n", ev.Path, ev.Op)
 					if app.Renderer != nil {
 						if err := app.Renderer.Reload(); err != nil {
-							fmt.Fprintf(cmd.ErrOrStderr(), "hmr reload: %v\n", err)
+							_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "hmr reload: %v\n", err)
 						}
 					}
 					if err := app.RemountPages(); err != nil {
-						fmt.Fprintf(cmd.ErrOrStderr(), "hmr remount: %v\n", err)
+						_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "hmr remount: %v\n", err)
 					}
 				})
 			}()
 
-			fmt.Fprintf(cmd.OutOrStdout(), "irmik dev listening on %s\n", cfg.Addr())
+			_, _ = fmt.Fprintf(cmd.OutOrStdout(), "irmik dev listening on %s\n", cfg.Addr())
 			if cfg.Islands.Enabled {
-				fmt.Fprintf(cmd.OutOrStdout(), "islands dev server expected at %s\n", cfg.Islands.DevServer)
+				_, _ = fmt.Fprintf(cmd.OutOrStdout(), "islands dev server expected at %s\n", cfg.Islands.DevServer)
 			}
 			return app.Run(ctx)
 		},
@@ -361,17 +361,17 @@ func cmdDev() *cobra.Command {
 // startViteStub tries to spawn `npx vite` when package.json exists; otherwise logs a hook message.
 func startViteStub(w io.Writer, cfg config.Config) *exec.Cmd {
 	if _, err := os.Stat("package.json"); err != nil {
-		fmt.Fprintln(w, "vite: no package.json — skip spawn (island package can hook here)")
+		_, _ = fmt.Fprintln(w, "vite: no package.json — skip spawn (island package can hook here)")
 		return nil
 	}
 	cmd := exec.Command("npx", "--yes", "vite", "--port", "5173")
 	cmd.Stdout = w
 	cmd.Stderr = w
 	if err := cmd.Start(); err != nil {
-		fmt.Fprintf(w, "vite: spawn failed: %v (continuing without Vite)\n", err)
+		_, _ = fmt.Fprintf(w, "vite: spawn failed: %v (continuing without Vite)\n", err)
 		return nil
 	}
-	fmt.Fprintf(w, "vite: started pid=%d (devServer=%s)\n", cmd.Process.Pid, cfg.Islands.DevServer)
+	_, _ = fmt.Fprintf(w, "vite: started pid=%d (devServer=%s)\n", cmd.Process.Pid, cfg.Islands.DevServer)
 	go func() {
 		deadline := time.Now().Add(10 * time.Second)
 		for time.Now().Before(deadline) {

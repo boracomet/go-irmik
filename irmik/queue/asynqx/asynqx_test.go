@@ -22,7 +22,7 @@ func TestOpenAndRegister(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer q.Close()
+	defer func() { _ = q.Close() }()
 
 	if err := q.Enqueue(context.Background(), queue.Job{}); err == nil {
 		t.Fatal("expected error for empty job name")
@@ -49,7 +49,7 @@ func TestEnqueueRun(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer q.Close()
+	defer func() { _ = q.Close() }()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

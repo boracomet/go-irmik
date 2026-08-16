@@ -88,7 +88,7 @@ func (s *itemStore) list(ctx context.Context, p paginate.Params) ([]Item, int, e
 	if err != nil {
 		return nil, 0, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var out []Item
 	for rows.Next() {

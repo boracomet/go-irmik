@@ -52,7 +52,7 @@ func TestUpDownStatusSteps(t *testing.T) {
 		t.Fatalf("migrate.Open: %v", err)
 	}
 	// Migrator.Close closes the *sql.DB pool.
-	defer m.Close()
+	defer func() { _ = m.Close() }()
 
 	st, err := m.Status()
 	if err != nil {

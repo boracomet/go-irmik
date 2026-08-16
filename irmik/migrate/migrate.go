@@ -90,7 +90,8 @@ func Open(opts Options) (*Migrator, error) {
 		if path == "" {
 			return nil, fmt.Errorf("migrate: empty migrations path")
 		}
-		abs, err := filepath.Abs(path)
+		var abs string
+		abs, err = filepath.Abs(path)
 		if err != nil {
 			return nil, fmt.Errorf("migrate: abs path: %w", err)
 		}

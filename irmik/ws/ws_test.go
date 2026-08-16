@@ -33,7 +33,7 @@ func TestUpgradeAndEcho(t *testing.T) {
 	if err != nil {
 		t.Fatalf("dial: %v", err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	if err := conn.WriteMessage(websocket.TextMessage, []byte("hi")); err != nil {
 		t.Fatal(err)
@@ -64,17 +64,17 @@ func TestHubRoomBroadcast(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer a.Close()
+	defer func() { _ = a.Close() }()
 	b, _, err := websocket.DefaultDialer.Dial(base+"?room=chat", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer b.Close()
+	defer func() { _ = b.Close() }()
 	outsider, _, err := websocket.DefaultDialer.Dial(base+"?room=other", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer outsider.Close()
+	defer func() { _ = outsider.Close() }()
 
 	// Wait for registrations
 	deadline := time.Now().Add(2 * time.Second)

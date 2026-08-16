@@ -21,7 +21,6 @@ func TestErrorEnvelope(t *testing.T) {
 	})
 	r.GET("/abort", func(c *gin.Context) {
 		api.Abort(c, http.StatusBadRequest, "bad_request", "nope")
-		return
 	})
 
 	w := httptest.NewRecorder()

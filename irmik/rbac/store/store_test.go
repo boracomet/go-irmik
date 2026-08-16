@@ -47,7 +47,7 @@ func TestSQLStoreSQLite(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	s := store.NewSQL(db, "sqlite")
 	if err := store.SeedPresets(ctx, s, "items"); err != nil {

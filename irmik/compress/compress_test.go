@@ -28,7 +28,7 @@ func TestGzip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer gr.Close()
+	defer func() { _ = gr.Close() }()
 	data, err := io.ReadAll(gr)
 	if err != nil {
 		t.Fatal(err)

@@ -35,7 +35,7 @@ func Watch(ctx context.Context, opts Options, onChange func(Event)) error {
 	if err != nil {
 		return err
 	}
-	defer w.Close()
+	defer func() { _ = w.Close() }()
 
 	for _, dir := range opts.Dirs {
 		if dir == "" {

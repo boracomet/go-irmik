@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/fs"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/boracomet/go-irmik/irmik/rbac"
@@ -63,7 +64,7 @@ func (s *SQL) RolePermissions(ctx context.Context) (map[string][]string, error) 
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	out := make(map[string][]string)
 	for rows.Next() {
 		var role, perm string
@@ -82,7 +83,7 @@ func (s *SQL) UserRoles(ctx context.Context) (map[string][]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	out := make(map[string][]string)
 	for rows.Next() {
 		var userID, role string
@@ -177,7 +178,7 @@ func rebindDollar(q string) string {
 		if q[i] == '?' {
 			n++
 			b.WriteByte('$')
-			b.WriteString(fmt.Sprintf("%d", n))
+			b.WriteString(strconv.Itoa(n))
 			continue
 		}
 		b.WriteByte(q[i])

@@ -16,7 +16,7 @@ func TestOpenSQLite(t *testing.T) {
 	if err != nil {
 		t.Fatalf("db.Open: %v", err)
 	}
-	defer database.Close()
+	defer func() { _ = database.Close() }()
 
 	gdb, err := gormx.Open(database)
 	if err != nil {

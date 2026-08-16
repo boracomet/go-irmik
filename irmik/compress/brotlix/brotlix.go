@@ -27,7 +27,7 @@ func Brotli() gin.HandlerFunc {
 			return
 		}
 		w := brotli.NewWriterLevel(c.Writer, brotli.DefaultCompression)
-		defer w.Close()
+		defer func() { _ = w.Close() }()
 		c.Header("Content-Encoding", "br")
 		c.Header("Vary", "Accept-Encoding")
 		c.Writer.Header().Del("Content-Length")

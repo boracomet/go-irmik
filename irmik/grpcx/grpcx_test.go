@@ -44,7 +44,7 @@ func TestServerHealth(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 	cli := healthpb.NewHealthClient(conn)
 	resp, err := cli.Check(ctx, &healthpb.HealthCheckRequest{})
 	if err != nil {

@@ -89,7 +89,7 @@ func main() {
 	if err != nil {
 		fatal(err)
 	}
-	defer database.Close()
+	defer func() { _ = database.Close() }()
 
 	store, err := newItemStore(database.DB())
 	if err != nil {
