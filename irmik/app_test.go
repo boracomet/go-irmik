@@ -19,7 +19,24 @@ func TestNewRejectsWeakJWTSecretOutsideDevelopment(t *testing.T) {
 
 func TestNewAllowsDevelopmentWithoutJWTSecret(t *testing.T) {
 	cfg := config.Default()
-	if _, err := New(cfg); err != nil {
+	app, err := New(cfg)
+	if err != nil {
 		t.Fatalf("New development app: %v", err)
+	}
+	if app.Devtools == nil {
+		t.Fatal("expected Devtools in development")
+	}
+}
+
+func TestNewProductionHasNoDevtools(t *testing.T) {
+	cfg := config.Default()
+	cfg.App.Env = "production"
+	cfg.Auth.JWTSecret = "production-jwt-secret-value-32chars"
+	app, err := New(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if app.Devtools != nil {
+		t.Fatal("devtools must not mount in production")
 	}
 }

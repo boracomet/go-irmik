@@ -24,6 +24,7 @@ Docs: [api.md](api.md), [admin.md](admin.md), [rbac.md](rbac.md). Catalog: [cata
 | **CORS helper** | Every admin SPA / islands app needs it | `irmik/cors` lean middleware | Done |
 | **Health dependency checks** | `/ready` that pings DB/Redis/queue | `irmik/health` + `app.RegisterReadyCheck` | Done |
 | **HTMX helpers for admin** | Partial/HX response helpers | Opt-in `irmik/htmx` | Done |
+| **WebP / image pipeline** | SSR srcset + admin upload variants | `imagex.Pipeline` + `Variants` / `WriteVariants` | Done |
 
 ## P2 — useful, still lean
 
@@ -33,7 +34,6 @@ Docs: [api.md](api.md), [admin.md](admin.md), [rbac.md](rbac.md). Catalog: [cata
 | **i18n routing** | Locale path prefixes / hreflang | Opt-in; keep out of core routing |
 | **OpenAPI from Gin routes (codegen)** | Less hand-written OpenAPI | Experimental generator on `openapi` |
 | **Richer Redis/asynq DX** | Queue already has asynqx | Docs + helpers, not core |
-| **WebP / image pipeline polish** | Admin uploads | Keep in `imagex` |
 
 ## Explicitly **not** for core
 

@@ -1,8 +1,13 @@
-// Package imagex provides image decode/resize/encode helpers.
+// Package imagex provides image decode/resize/encode helpers and an opt-in
+// responsive-image pipeline for SSR pages and uploads.
 //
 // Supports JPEG/PNG encode via the standard library, WebP decode via
 // golang.org/x/image/webp, and WebP encode via the pure-Go
 // github.com/deepteams/webp library (no CGO).
+//
+// Transform is the primitive. Pipeline mounts GET /_irmik/img plus an {{ img }}
+// template helper (frontend SSR). Variants / WriteVariants encode allowlisted
+// widths at upload time (admin). Nothing here is wired by irmik.New.
 //
 // Opt-in: import only when processing images.
 package imagex

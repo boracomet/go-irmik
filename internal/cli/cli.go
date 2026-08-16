@@ -337,14 +337,27 @@ func cmdDev() *cobra.Command {
 					Debounce:   200 * time.Millisecond,
 				}, func(ev hmr.Event) {
 					_, _ = fmt.Fprintf(cmd.OutOrStdout(), "hmr: %s (%s)\n", ev.Path, ev.Op)
+					var reloadErr error
 					if app.Renderer != nil {
-						if err := app.Renderer.Reload(); err != nil {
-							_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "hmr reload: %v\n", err)
+						reloadErr = app.Renderer.Reload()
+						if reloadErr != nil {
+							_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "hmr reload: %v\n", reloadErr)
 						}
 					}
 					if err := app.RemountPages(); err != nil {
 						_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "hmr remount: %v\n", err)
+						if reloadErr == nil {
+							reloadErr = err
+						}
 					}
+					if app.Devtools == nil {
+						return
+					}
+					if reloadErr != nil {
+						app.Devtools.Report("template", reloadErr.Error())
+						return
+					}
+					app.Devtools.Reload(ev.Path)
 				})
 			}()
 

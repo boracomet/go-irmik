@@ -28,6 +28,7 @@ Irmik keeps **`irmik.New` and the root `irmik` package thin**. Extra capabilitie
 | `irmik/middleware` | Recovery, request ID, health/ready, opt-in `RequestLog` |
 | `irmik/plugin` | Lifecycle hooks |
 | `irmik/tmplfunc`, `slug`, `fsutil`, `meta`, `lifecycle` | Shared helpers |
+| `irmik/devtools` | Dev only: overlay badge, errors, live reload (`irmik.New` when `IsDev`) |
 
 ## Opt-in: auth & data
 
@@ -62,7 +63,7 @@ Irmik keeps **`irmik.New` and the root `irmik` package thin**. Extra capabilitie
 | `irmik/observe/otelx` | Experimental | `otelx.Setup(ctx, opts)` | OpenTelemetry SDK |
 | `irmik/compress` | Stable | `r.Use(compress.Gzip())` | stdlib gzip |
 | `irmik/compress/brotlix` | Stable | `r.Use(brotlix.Brotli())` | andybalholm/brotli |
-| `irmik/imagex` | Stable | `imagex.Transform(r, opts)` incl. WebP encode | x/image + deepteams/webp (pure Go) |
+| `irmik/imagex` | Stable | `Pipeline` (`{{ img }}` + `/_irmik/img`) · `Variants` / `WriteVariants` · `Transform` | x/image + deepteams/webp (pure Go) |
 | `irmik/secrets` | Stable | `secrets.Env{Prefix:"IRMIK_"}` | none |
 | `irmik/grpcx` | Stable | `grpcx.NewServer(opts).ListenAndServe(ctx)` | google.golang.org/grpc |
 | `irmik/proxy` | Stable | `proxy.Handler(proxy.Options{Target: "…"})` | `httputil` |
@@ -232,6 +233,10 @@ srv := grpcx.NewServer(grpcx.ServerOptions{
 go srv.ListenAndServe(ctx)
 ```
 
+### Dev overlay
+
+When `cfg.IsDev()`, `irmik.New` injects a bottom-left badge into HTML. Click it for template/JS errors, file routes, and server info. `irmik dev` live-reloads the tab after `app/` or `templates/` saves. Island TSX errors stay in the Vite overlay. Production (`irmik start` / `env: production`) does not mount this.
+
 ### Image transform (incl. WebP encode)
 
 ```go
@@ -240,6 +245,37 @@ out, ct, err := imagex.Transform(r, imagex.Options{
 })
 ```
 
+### Responsive images (SSR frontend)
+
+Opt-in. Not wired by `irmik.New`. Local files under `Root` only — no remote URL proxy.
+
+```go
+img := &imagex.Pipeline{Root: "./public"} // allowlist 375 / 768 / 1440
+img.Mount(app.Engine)
+app.MountPages(irmik.MountOptions{
+    Funcs: img.FuncMap(),
+})
+```
+
+```html
+{{ img "/hero.jpg" (dict "alt" "Hero" "width" 1440 "height" 810 "priority" true) }}
+```
+
+`priority` is for the LCP/hero image (`fetchpriority=high`, no `loading=lazy`). Other images lazy-load.
+
+### Upload variants (admin)
+
+Same encoder, at `Save()` time:
+
+```go
+f, err := upload.Save(c, upload.Options{DestDir: "./data/uploads"})
+raw, err := os.ReadFile(f.Path)
+paths, err := imagex.WriteVariants("./data/uploads", f.Filename, bytes.NewReader(raw),
+    []int{375, 1440}, imagex.Options{Format: imagex.WEBP, Quality: 80})
+```
+
+Writes `name-375.webp` and `name-1440.webp` next to the original.
+
 Prioritized “what else / what not to add to core”: **[roadmap.md](roadmap.md)**. Positioning vs Gin / StatiGo / Echo / Buffalo / Fiber: **[compare.md](compare.md)**.
 
-See also [architecture.md](architecture.md), [auth.md](auth.md), [rbac.md](rbac.md), [database.md](database.md), [realtime.md](realtime.md), [api.md](api.md), [admin.md](admin.md).
+See also [architecture.md](architecture.md), [auth.md](auth.md), [rbac.md](rbac.md), [database.md](database.md), [realtime.md](realtime.md), [api.md](api.md), [admin.md](admin.md), [devtools.md](devtools.md).

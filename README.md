@@ -14,6 +14,10 @@ It is for:
 - Server-rendered sites with file-based routes.
 - Teams that want optional database, upload, realtime, and queue packages.
 
+**v0.1.1:** opt-in responsive images (`imagex.Pipeline`, upload variants) and a
+development overlay (badge, errors, live reload with `irmik dev`). See the
+[changelog](CHANGELOG.md).
+
 ## Quick start
 
 ```sh
@@ -39,7 +43,8 @@ JWT secrets are rejected outside development. Do not store access tokens in
 application does not import those optional integrations.
 
 Links: [catalog](docs/catalog.md) · [auth](docs/auth.md) ·
-[security](docs/security.md) · [comparison](docs/compare.md) ·
+[security](docs/security.md) · [devtools](docs/devtools.md) ·
+[comparison](docs/compare.md) · [changelog](CHANGELOG.md) ·
 [examples](examples)
 
 ## License

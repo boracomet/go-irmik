@@ -9,6 +9,7 @@ Irmik is a thin meta-framework around Gin. The public SDK lives under `irmik/`; 
 3. **render.Engine** executes `page.html` then wraps **layout.html** chain (root → leaf).
 4. Template helpers: `tmplfunc` (`dict`, `slugify`, …) + **island** FuncMap (`island`, `islandRuntime`).
 5. **ISR:** look up `cache.Key(method, path, locale)`; on HIT/STALE serve body with weak `ETag` and `X-Cache`; revalidate in background when stale; on MISS render and `Set`.
+6. **Development only:** `devtools` injects the overlay script into HTML and serves `/_irmik/dev/*` (badge, errors, live reload).
 
 ## Build path (SSG / ISR seed)
 
@@ -81,4 +82,4 @@ Primary file: `irmik.yaml` (`app`, `server`, `cache`, `database`, `session`, `au
 
 Full i18n URL maps, minify-on-serve, a DI container, GraphQL-in-core, and a mandatory CMS/admin generator are out of scope for the thin core. Opt-in platform packages live beside the core — see [catalog.md](catalog.md) and [roadmap.md](roadmap.md).
 
-Related: [auth.md](auth.md) · [rbac.md](rbac.md) · [database.md](database.md) · [realtime.md](realtime.md) · [admin.md](admin.md) · [api.md](api.md) · [security.md](security.md)
+Related: [auth.md](auth.md) · [rbac.md](rbac.md) · [database.md](database.md) · [realtime.md](realtime.md) · [admin.md](admin.md) · [api.md](api.md) · [security.md](security.md) · [devtools.md](devtools.md)

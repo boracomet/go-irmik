@@ -16,6 +16,7 @@ import (
 	"github.com/boracomet/go-irmik/irmik/auth"
 	"github.com/boracomet/go-irmik/irmik/cache"
 	"github.com/boracomet/go-irmik/irmik/config"
+	"github.com/boracomet/go-irmik/irmik/devtools"
 	"github.com/boracomet/go-irmik/irmik/health"
 	"github.com/boracomet/go-irmik/irmik/island"
 	"github.com/boracomet/go-irmik/irmik/lifecycle"
@@ -40,6 +41,8 @@ type App struct {
 	Sessions *session.Manager
 	// Auth is optional authenticator (EnableAuth); JWT + session helpers.
 	Auth *auth.Authenticator
+	// Devtools is the development overlay (nil outside development).
+	Devtools *devtools.Dev
 
 	ready       atomic.Bool
 	readyChecks *health.Registry
@@ -78,6 +81,21 @@ func New(cfg config.Config) (*App, error) {
 	}
 
 	engine := gin.New()
+	app := &App{
+		Config:      cfg,
+		Engine:      engine,
+		Cache:       store,
+		Plugins:     plugin.NewRegistry(),
+		readyChecks: health.New(),
+	}
+
+	if cfg.IsDev() {
+		app.Devtools = devtools.New(devtools.Options{
+			Info: func() devtools.Snapshot { return devSnapshot(app) },
+		})
+		engine.Use(app.Devtools.Inject())
+	}
+
 	engine.Use(middleware.Recovery(), middleware.RequestID())
 
 	// Cheap baseline headers are on by default; rate limit stays opt-in.
@@ -99,12 +117,8 @@ func New(cfg config.Config) (*App, error) {
 		}
 	}
 
-	app := &App{
-		Config:      cfg,
-		Engine:      engine,
-		Cache:       store,
-		Plugins:     plugin.NewRegistry(),
-		readyChecks: health.New(),
+	if app.Devtools != nil {
+		app.Devtools.Mount(engine)
 	}
 
 	middleware.HealthWith(engine, middleware.HealthConfig{
@@ -402,4 +416,24 @@ func AdaptLoader(fn func(*Context) (any, error)) router.Loader {
 // HTTPServer returns the underlying http.Server after Run has started it.
 func (a *App) HTTPServer() *http.Server {
 	return a.srv
+}
+
+func devSnapshot(a *App) devtools.Snapshot {
+	s := devtools.Snapshot{
+		Env:        a.Config.App.Env,
+		Addr:       a.Config.Addr(),
+		LiveReload: true,
+		Routes:     []devtools.RouteInfo{},
+	}
+	if a.Router == nil {
+		return s
+	}
+	for _, rt := range a.Router.Routes() {
+		mode := string(rt.Meta.Mode)
+		if mode == "" {
+			mode = "ssr"
+		}
+		s.Routes = append(s.Routes, devtools.RouteInfo{Path: rt.URLPath, Mode: mode})
+	}
+	return s
 }
