@@ -62,7 +62,7 @@ type MountOptions struct {
 // routes, cache store, and an empty plugin registry.
 func New(cfg config.Config) (*App, error) {
 	if !cfg.IsDev() && weakSecret(cfg.Auth.JWTSecret) {
-		return nil, errors.New("irmik: auth.jwtSecret must be set to a non-demo value outside development")
+		return nil, errors.New("irmik: auth.jwtSecret must be at least 32 characters and not a demo value outside development")
 	}
 	if cfg.IsDev() {
 		gin.SetMode(gin.DebugMode)
@@ -128,13 +128,15 @@ func New(cfg config.Config) (*App, error) {
 	return app, nil
 }
 
+const minJWTSecretLen = 32
+
 func weakSecret(secret string) bool {
-	switch strings.TrimSpace(secret) {
+	s := strings.TrimSpace(secret)
+	switch s {
 	case "", "dev-only-change-me-jwt-secret-32b", "change-me", "secret", "password123":
 		return true
-	default:
-		return false
 	}
+	return len(s) < minJWTSecretLen
 }
 
 // EnableSecureDefaults turns on admin-oriented protections beyond baseline headers:
@@ -223,6 +225,7 @@ func (a *App) EnableSessions() error {
 }
 
 // EnableAuth constructs an auth.Authenticator from cfg.Auth.
+// Refresh tokens use a process-local MemoryRefreshStore by default (not multi-replica).
 // Does not mount middleware; call Auth.InjectSessionUser / MiddlewareJWT as needed.
 func (a *App) EnableAuth() *auth.Authenticator {
 	if a.Auth != nil {
@@ -378,19 +381,24 @@ func (a *App) Run(ctx context.Context) error {
 		Handler:      a.Engine,
 		ReadTimeout:  a.Config.Server.ReadTimeout,
 		WriteTimeout: a.Config.Server.WriteTimeout,
+		IdleTimeout:  a.Config.Server.IdleTimeout,
 	}
 
 	runCtx, stop := lifecycle.Signals(ctx)
 	defer stop()
 
 	a.ready.Store(true)
-	_ = a.Plugins.Run(plugin.HookAfterStart, plugin.NewContext(runCtx))
+	if err := a.Plugins.Run(plugin.HookAfterStart, plugin.NewContext(runCtx)); err != nil {
+		slog.Error("irmik: after_start", "err", err)
+	}
 
 	err := lifecycle.Serve(runCtx, a.srv, a.Config.Server.ShutdownTimeout)
 
 	a.ready.Store(false)
 	stopPC := plugin.NewContext(context.Background())
-	_ = a.Plugins.Run(plugin.HookBeforeStop, stopPC)
+	if err := a.Plugins.Run(plugin.HookBeforeStop, stopPC); err != nil {
+		slog.Error("irmik: before_stop", "err", err)
+	}
 
 	if a.Cache != nil {
 		_ = a.Cache.Close()
@@ -398,7 +406,9 @@ func (a *App) Run(ctx context.Context) error {
 	if a.Sessions != nil {
 		_ = a.Sessions.Close()
 	}
-	_ = a.Plugins.Run(plugin.HookAfterStop, stopPC)
+	if err := a.Plugins.Run(plugin.HookAfterStop, stopPC); err != nil {
+		slog.Error("irmik: after_stop", "err", err)
+	}
 
 	if err != nil {
 		return fmt.Errorf("irmik: serve: %w", err)

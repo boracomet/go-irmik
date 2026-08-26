@@ -3,6 +3,7 @@ package sse_test
 import (
 	"bufio"
 	"context"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -128,6 +129,49 @@ func TestHubBroadcast(t *testing.T) {
 	}
 	if h.Len() != 1 {
 		t.Fatalf("Len = %d", h.Len())
+	}
+}
+
+func TestSSEClearsWriteDeadline(t *testing.T) {
+	r := gin.New()
+	writeErr := make(chan error, 1)
+	r.GET("/sse", func(c *gin.Context) {
+		s, err := sse.New(c, sse.Options{})
+		if err != nil {
+			writeErr <- err
+			return
+		}
+		defer s.Close()
+		time.Sleep(120 * time.Millisecond)
+		writeErr <- s.Data("still-alive")
+	})
+
+	srv := httptest.NewUnstartedServer(r)
+	srv.Config.WriteTimeout = 40 * time.Millisecond
+	srv.Start()
+	defer srv.Close()
+
+	resp, err := http.Get(srv.URL + "/sse")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	select {
+	case err := <-writeErr:
+		if err != nil {
+			t.Fatalf("SSE write after WriteTimeout: %v", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("handler did not finish")
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(body), "data: still-alive") {
+		t.Fatalf("missing event, got %q", body)
 	}
 }
 

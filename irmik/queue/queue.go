@@ -101,6 +101,7 @@ func New(opts Options) (Queue, error) {
 // Memory is a buffered in-process queue.
 type Memory struct {
 	ch     chan Job
+	quit   chan struct{}
 	mu     sync.Mutex
 	closed bool
 	wg     sync.WaitGroup
@@ -111,7 +112,7 @@ func NewMemory(buffer int) *Memory {
 	if buffer <= 0 {
 		buffer = 64
 	}
-	return &Memory{ch: make(chan Job, buffer)}
+	return &Memory{ch: make(chan Job, buffer), quit: make(chan struct{})}
 }
 
 // Enqueue adds a job. Delayed jobs (Job.At in the future) sleep in a goroutine
@@ -122,43 +123,43 @@ func (m *Memory) Enqueue(ctx context.Context, job Job) error {
 		m.mu.Unlock()
 		return ErrClosed
 	}
-	m.mu.Unlock()
-
 	if !job.At.IsZero() && time.Until(job.At) > 0 {
 		delay := time.Until(job.At)
 		m.wg.Add(1)
-		go func() {
-			defer m.wg.Done()
-			timer := time.NewTimer(delay)
-			defer timer.Stop()
-			select {
-			case <-ctx.Done():
-				return
-			case <-timer.C:
-			}
-			m.mu.Lock()
-			closed := m.closed
-			m.mu.Unlock()
-			if closed {
-				return
-			}
-			select {
-			case m.ch <- job:
-			case <-ctx.Done():
-			}
-		}()
+		m.mu.Unlock()
+		go m.enqueueDelayed(ctx, job, delay)
 		return nil
 	}
+	m.mu.Unlock()
+	return m.send(ctx, job)
+}
 
+func (m *Memory) enqueueDelayed(ctx context.Context, job Job, delay time.Duration) {
+	defer m.wg.Done()
+	timer := time.NewTimer(delay)
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+		return
+	case <-m.quit:
+		return
+	case <-timer.C:
+	}
+	_ = m.send(ctx, job)
+}
+
+func (m *Memory) send(ctx context.Context, job Job) error {
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
+	case <-m.quit:
+		return ErrClosed
 	case m.ch <- job:
 		return nil
 	}
 }
 
-// Run consumes jobs until ctx is done.
+// Run consumes jobs until ctx is done or Close.
 func (m *Memory) Run(ctx context.Context, h Handler) error {
 	if h == nil {
 		return errors.New("queue: nil handler")
@@ -167,6 +168,8 @@ func (m *Memory) Run(ctx context.Context, h Handler) error {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
+		case <-m.quit:
+			return nil
 		case job, ok := <-m.ch:
 			if !ok {
 				return nil
@@ -181,6 +184,7 @@ func (m *Memory) Run(ctx context.Context, h Handler) error {
 }
 
 // Close stops accepting jobs and waits for delayed enqueue goroutines.
+// The job channel is left open so a racing delayed send cannot panic.
 func (m *Memory) Close() error {
 	m.mu.Lock()
 	if m.closed {
@@ -188,7 +192,7 @@ func (m *Memory) Close() error {
 		return nil
 	}
 	m.closed = true
-	close(m.ch)
+	close(m.quit)
 	m.mu.Unlock()
 	m.wg.Wait()
 	return nil

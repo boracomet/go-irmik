@@ -22,7 +22,8 @@ func main() {
 	if err != nil {
 		fatal(err)
 	}
-	// Long-lived streams must not hit the default write timeout.
+	// SSE clears the per-connection write deadline; disable server timeouts
+	// anyway so other streaming handlers and WS reads are not cut short.
 	cfg.Server.WriteTimeout = 0
 	cfg.Server.ReadTimeout = 0
 

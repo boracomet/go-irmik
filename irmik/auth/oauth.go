@@ -3,7 +3,6 @@ package auth
 import (
 	"context"
 	"errors"
-	"net/http"
 	"net/url"
 	"strings"
 )
@@ -93,20 +92,21 @@ func (p *StubProvider) Exchange(_ context.Context, code string) (*OAuthUser, err
 	return nil, errors.New("auth: stub oauth invalid code")
 }
 
-// GitHubProvider is a thin config holder implementing Provider with HTTP stubs
-// that return ErrNotConfigured until ClientID is set and Exchange is overridden
-// or real endpoints are wired. Use for interface wiring; production apps should
-// complete token exchange against api.github.com.
-type GitHubProvider struct {
+// ErrOAuthNotImplemented is returned by GitHubStub and GoogleStub Exchange.
+// Irmik does not ship a GitHub or Google OAuth client.
+var ErrOAuthNotImplemented = errors.New("auth: OAuth Exchange is not implemented; use StubProvider for tests or implement Provider with your own HTTP client")
+
+// GitHubStub is not a GitHub OAuth client. AuthCodeURL only builds GitHub's
+// authorize URL for wiring tests. Exchange always returns ErrOAuthNotImplemented.
+type GitHubStub struct {
 	OAuthConfig
-	HTTPClient *http.Client
 }
 
 // Name implements Provider.
-func (p *GitHubProvider) Name() string { return "github" }
+func (p *GitHubStub) Name() string { return "github" }
 
-// AuthCodeURL implements Provider.
-func (p *GitHubProvider) AuthCodeURL(state string) string {
+// AuthCodeURL implements Provider (URL builder only).
+func (p *GitHubStub) AuthCodeURL(state string) string {
 	u, _ := url.Parse("https://github.com/login/oauth/authorize")
 	q := u.Query()
 	q.Set("client_id", p.ClientID)
@@ -119,28 +119,22 @@ func (p *GitHubProvider) AuthCodeURL(state string) string {
 	return u.String()
 }
 
-// Exchange is a stub that documents the real flow; returns an error directing
-// callers to implement token + user fetch (kept intentional for Phase 2.1).
-func (p *GitHubProvider) Exchange(ctx context.Context, code string) (*OAuthUser, error) {
-	_ = ctx
-	_ = code
-	if p.ClientID == "" || p.ClientSecret == "" {
-		return nil, errors.New("auth: github oauth not configured")
-	}
-	return nil, errors.New("auth: github Exchange not implemented; use Provider interface with your HTTP client")
+// Exchange always fails. There is no GitHub token exchange in this package.
+func (p *GitHubStub) Exchange(_ context.Context, _ string) (*OAuthUser, error) {
+	return nil, ErrOAuthNotImplemented
 }
 
-// GoogleProvider mirrors GitHubProvider for Google OAuth wiring.
-type GoogleProvider struct {
+// GoogleStub is not a Google OAuth client. AuthCodeURL only builds Google's
+// authorize URL for wiring tests. Exchange always returns ErrOAuthNotImplemented.
+type GoogleStub struct {
 	OAuthConfig
-	HTTPClient *http.Client
 }
 
 // Name implements Provider.
-func (p *GoogleProvider) Name() string { return "google" }
+func (p *GoogleStub) Name() string { return "google" }
 
-// AuthCodeURL implements Provider.
-func (p *GoogleProvider) AuthCodeURL(state string) string {
+// AuthCodeURL implements Provider (URL builder only).
+func (p *GoogleStub) AuthCodeURL(state string) string {
 	u, _ := url.Parse("https://accounts.google.com/o/oauth2/v2/auth")
 	q := u.Query()
 	q.Set("client_id", p.ClientID)
@@ -156,14 +150,9 @@ func (p *GoogleProvider) AuthCodeURL(state string) string {
 	return u.String()
 }
 
-// Exchange stub — same pattern as GitHubProvider.
-func (p *GoogleProvider) Exchange(ctx context.Context, code string) (*OAuthUser, error) {
-	_ = ctx
-	_ = code
-	if p.ClientID == "" || p.ClientSecret == "" {
-		return nil, errors.New("auth: google oauth not configured")
-	}
-	return nil, errors.New("auth: google Exchange not implemented; use Provider interface with your HTTP client")
+// Exchange always fails. There is no Google token exchange in this package.
+func (p *GoogleStub) Exchange(_ context.Context, _ string) (*OAuthUser, error) {
+	return nil, ErrOAuthNotImplemented
 }
 
 func joinScopes(scopes []string) string {

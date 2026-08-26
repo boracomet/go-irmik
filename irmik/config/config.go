@@ -38,6 +38,7 @@ type ServerConfig struct {
 	Port            int           `yaml:"port"`
 	ReadTimeout     time.Duration `yaml:"readTimeout"`
 	WriteTimeout    time.Duration `yaml:"writeTimeout"`
+	IdleTimeout     time.Duration `yaml:"idleTimeout"`
 	ShutdownTimeout time.Duration `yaml:"shutdownTimeout"`
 	// TrustedProxies are CIDRs/IPs passed to gin.Engine.SetTrustedProxies
 	// so ClientIP (rate limit, etc.) honors X-Forwarded-For from those hops.
@@ -152,6 +153,7 @@ func Default() Config {
 			Port:            8080,
 			ReadTimeout:     15 * time.Second,
 			WriteTimeout:    30 * time.Second,
+			IdleTimeout:     60 * time.Second,
 			ShutdownTimeout: 10 * time.Second,
 		},
 		Cache: CacheConfig{

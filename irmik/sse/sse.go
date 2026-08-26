@@ -63,6 +63,8 @@ func New(c *gin.Context, opts Options) (*Stream, error) {
 	}
 	w.WriteHeader(http.StatusOK)
 	flusher.Flush()
+	// http.Server.WriteTimeout otherwise kills the stream (~30s default).
+	_ = http.NewResponseController(w).SetWriteDeadline(time.Time{})
 
 	reqCtx := c.Request.Context()
 	ctx, cancel := context.WithCancel(reqCtx)

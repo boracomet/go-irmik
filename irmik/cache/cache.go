@@ -88,6 +88,6 @@ func New(opts Options) (Store, error) {
 		if d == "redis" {
 			return nil, fmt.Errorf("cache: redis driver not registered; blank-import github.com/boracomet/go-irmik/irmik/cache/redisx")
 		}
-		return NewMemory(), nil
+		return nil, fmt.Errorf("cache: unknown driver %q", d)
 	}
 }

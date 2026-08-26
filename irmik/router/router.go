@@ -8,9 +8,12 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -20,11 +23,17 @@ import (
 
 	"github.com/boracomet/go-irmik/irmik/cache"
 	"github.com/boracomet/go-irmik/irmik/meta"
+	"github.com/boracomet/go-irmik/irmik/middleware"
 	"github.com/boracomet/go-irmik/irmik/render"
 )
 
 // Loader supplies per-request (or build-time) data for a route.
 // Keyed by Gin path pattern (e.g. "/blog/:slug").
+//
+// ISR background revalidation clones the original GET (path, query, headers,
+// params) onto a detached gin.Context and calls the same Loader. Loaders must
+// be safe to re-run that way: do not depend on the live ResponseWriter, and
+// treat missing session/auth gin keys as anonymous. Per-user ISR is unsupported.
 type Loader func(c *gin.Context) (any, error)
 
 // Route is a discovered page route under app/.
@@ -284,10 +293,9 @@ func (r *Router) Mount(engine *gin.Engine) {
 
 	for i := range r.routes {
 		rt := r.routes[i]
-		engine.GET(rt.URLPath, r.handler(rt))
-		if rt.URLPath != "/" {
-			engine.HEAD(rt.URLPath, r.handler(rt))
-		}
+		h := r.handler(rt)
+		engine.GET(rt.URLPath, h)
+		engine.HEAD(rt.URLPath, h)
 	}
 }
 
@@ -311,10 +319,10 @@ func (r *Router) handler(rt Route) gin.HandlerFunc {
 func (r *Router) serveSSR(c *gin.Context, rt Route) {
 	body, err := r.renderRoute(c, rt)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "render error: %v", err)
+		renderFail(c, err)
 		return
 	}
-	c.Data(http.StatusOK, "text/html; charset=utf-8", body)
+	writeHTML(c, http.StatusOK, "text/html; charset=utf-8", body)
 }
 
 func (r *Router) serveCSR(c *gin.Context, rt Route) {
@@ -322,10 +330,10 @@ func (r *Router) serveCSR(c *gin.Context, rt Route) {
 	// render normally — CSR pages typically are thin shells with islands.
 	body, err := r.renderRoute(c, rt)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "render error: %v", err)
+		renderFail(c, err)
 		return
 	}
-	c.Data(http.StatusOK, "text/html; charset=utf-8", body)
+	writeHTML(c, http.StatusOK, "text/html; charset=utf-8", body)
 }
 
 func (r *Router) serveStatic(c *gin.Context, rt Route) {
@@ -362,7 +370,7 @@ func (r *Router) serveISR(c *gin.Context, rt Route) {
 		r.serveSSR(c, rt)
 		return
 	}
-	key := cache.Key(c.Request.Method, c.Request.URL.Path, r.opts.Locale)
+	key := cache.Key(http.MethodGet, c.Request.URL.Path, r.opts.Locale)
 	ctx := c.Request.Context()
 	entry, err := r.opts.Cache.Get(ctx, key)
 	switch {
@@ -370,7 +378,7 @@ func (r *Router) serveISR(c *gin.Context, rt Route) {
 		status := "HIT"
 		if entry.Stale() {
 			status = "STALE"
-			r.revalidateAsync(key, rt, c.Request.URL.Path, copyParams(c))
+			r.revalidateAsync(key, rt, c)
 		}
 		writeCachedHTML(c, entry.Body, contentType(entry), status)
 		return
@@ -378,7 +386,7 @@ func (r *Router) serveISR(c *gin.Context, rt Route) {
 		// Fall through to render; optionally still serve stale briefly.
 		if len(entry.Body) > 0 {
 			writeCachedHTML(c, entry.Body, contentType(entry), "STALE")
-			r.revalidateAsync(key, rt, c.Request.URL.Path, copyParams(c))
+			r.revalidateAsync(key, rt, c)
 			return
 		}
 	case errors.Is(err, cache.ErrMiss):
@@ -393,7 +401,7 @@ func (r *Router) serveISR(c *gin.Context, rt Route) {
 
 	body, err := r.renderRoute(c, rt)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "render error: %v", err)
+		renderFail(c, err)
 		return
 	}
 	_ = r.opts.Cache.Set(ctx, key, r.isrEntry(body, rt.Meta.Revalidate))
@@ -409,7 +417,34 @@ func writeCachedHTML(c *gin.Context, body []byte, ct, cacheStatus string) {
 		c.Status(http.StatusNotModified)
 		return
 	}
-	c.Data(http.StatusOK, ct, body)
+	writeHTML(c, http.StatusOK, ct, body)
+}
+
+func writeHTML(c *gin.Context, status int, ct string, body []byte) {
+	if ct == "" {
+		ct = "text/html; charset=utf-8"
+	}
+	c.Header("Content-Type", ct)
+	c.Header("Content-Length", strconv.Itoa(len(body)))
+	if c.Request.Method == http.MethodHead {
+		c.Status(status)
+		return
+	}
+	c.Data(status, ct, body)
+}
+
+func renderFail(c *gin.Context, err error) {
+	rid := middleware.GetRequestID(c)
+	slog.Error("irmik: render error",
+		"err", err,
+		"path", c.Request.URL.Path,
+		"request_id", rid,
+	)
+	c.Header("Content-Type", "text/plain; charset=utf-8")
+	if rid != "" {
+		c.Header("X-Request-ID", rid)
+	}
+	c.String(http.StatusInternalServerError, "internal server error")
 }
 
 func weakETag(body []byte) string {
@@ -430,7 +465,7 @@ func (r *Router) isrEntry(body []byte, revalidate time.Duration) cache.Entry {
 	}
 }
 
-func (r *Router) revalidateAsync(key string, rt Route, reqPath string, params map[string]string) {
+func (r *Router) revalidateAsync(key string, rt Route, src *gin.Context) {
 	r.mu.Lock()
 	if r.inflight[key] {
 		r.mu.Unlock()
@@ -439,20 +474,34 @@ func (r *Router) revalidateAsync(key string, rt Route, reqPath string, params ma
 	r.inflight[key] = true
 	r.mu.Unlock()
 
+	req := cloneRequestForRevalidate(src)
+	params := append(gin.Params(nil), src.Params...)
+
 	go func() {
 		defer func() {
 			r.mu.Lock()
 			delete(r.inflight, key)
 			r.mu.Unlock()
 		}()
-		ctx := context.Background()
-		// Build a minimal synthetic context is hard without gin; re-render via loader+engine.
-		body, err := r.renderWithParams(ctx, rt, reqPath, params)
+		gc, _ := gin.CreateTestContext(httptest.NewRecorder())
+		gc.Request = req
+		gc.Params = params
+		body, err := r.renderRoute(gc, rt)
 		if err != nil {
+			slog.Error("irmik: isr revalidate", "err", err, "path", req.URL.Path)
 			return
 		}
-		_ = r.opts.Cache.Set(ctx, key, r.isrEntry(body, rt.Meta.Revalidate))
+		_ = r.opts.Cache.Set(req.Context(), key, r.isrEntry(body, rt.Meta.Revalidate))
 	}()
+}
+
+// cloneRequestForRevalidate copies the live GET so background ISR uses the same
+// loader path (URL, query, headers, params) without the original ResponseWriter
+// or a cancelled client context.
+func cloneRequestForRevalidate(c *gin.Context) *http.Request {
+	req := c.Request.Clone(context.Background())
+	req.Method = http.MethodGet
+	return req
 }
 
 func (r *Router) renderRoute(c *gin.Context, rt Route) ([]byte, error) {
@@ -476,20 +525,6 @@ func (r *Router) renderRoute(c *gin.Context, rt Route) ([]byte, error) {
 		Data:   data,
 		Params: params,
 		Path:   c.Request.URL.Path,
-	})
-}
-
-func (r *Router) renderWithParams(_ context.Context, rt Route, reqPath string, params map[string]string) ([]byte, error) {
-	if r.opts.Renderer == nil {
-		return nil, fmt.Errorf("router: renderer is nil")
-	}
-	// Background revalidate: render with params only (loaders that need *gin.Context are skipped).
-	data := map[string]any{"params": params, "path": reqPath}
-	return r.opts.Renderer.RenderToBytes(rt.PageFile, rt.LayoutFiles, render.Data{
-		Meta:   rt.Meta,
-		Data:   data,
-		Params: params,
-		Path:   reqPath,
 	})
 }
 
@@ -534,10 +569,3 @@ func contentType(e cache.Entry) string {
 	return "text/html; charset=utf-8"
 }
 
-func copyParams(c *gin.Context) map[string]string {
-	m := make(map[string]string, len(c.Params))
-	for _, p := range c.Params {
-		m[p.Key] = p.Value
-	}
-	return m
-}

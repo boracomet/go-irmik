@@ -9,6 +9,9 @@
 Irmik is a Go framework for Gin applications with server-rendered pages,
 sessions, security helpers, and opt-in packages.
 
+**Core promise:** file-based `app/` routes, SSR/SSG/ISR render modes, and
+security-minded admin helpers (opt-in session/CSRF/RBAC/HTMX).
+
 It is for:
 - Admin and internal tools that need sessions, CSRF, RBAC, and a JSON API.
 - Server-rendered sites with file-based routes.
@@ -39,8 +42,10 @@ For production, set `IRMIK_JWT_SECRET` to a strong random value. Empty and demo
 JWT secrets are rejected outside development. Do not store access tokens in
 `localStorage`; use an httpOnly BFF cookie or a server session.
 
-`go get` may download AWS, GORM, and OpenTelemetry versions even when your
-application does not import those optional integrations.
+`go get` downloads this module’s full `go.mod` graph, including AWS, GORM, and
+OpenTelemetry, even when your application never imports those packages.
+**Binary linking is opt-in via import; module download is not.** Unused catalog
+packages stay out of the binary only if you do not import them.
 
 Links: [catalog](docs/catalog.md) · [auth](docs/auth.md) ·
 [security](docs/security.md) · [devtools](docs/devtools.md) ·

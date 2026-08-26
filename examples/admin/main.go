@@ -448,6 +448,8 @@ func (s *server) handleAPIToken(c *gin.Context) {
 		return
 	}
 	au := auth.User{ID: u.ID, Email: u.Email, Roles: u.Roles}
+	// Refresh tokens live in the process-local RefreshStore; they do not survive
+	// restart or extra replicas. This example is not a production JWT story.
 	pair, err := s.auth.IssueTokenPair(au)
 	if err != nil {
 		api.Internal(c, err.Error())

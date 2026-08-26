@@ -53,7 +53,11 @@ func (c *Context) User() (auth.User, bool) {
 	return auth.UserFrom(c.Context)
 }
 
-// MustUser returns the authenticated user or a zero value.
+// MustUser returns the authenticated user, or panics if none is in context.
 func (c *Context) MustUser() auth.User {
-	return auth.OptionalUser(c.Context)
+	u, ok := auth.UserFrom(c.Context)
+	if !ok {
+		panic("irmik: no authenticated user in context")
+	}
+	return u
 }

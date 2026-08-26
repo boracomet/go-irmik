@@ -1,6 +1,6 @@
 # Contributing to Irmik
 
-Thanks for helping improve Irmik. This project stays a **thin Gin core** with a **wide opt-in catalog** — please keep that shape when proposing changes.
+Thanks for helping improve Irmik. The core promise is **file-based routes, render modes, and security-minded admin helpers**, with extra capabilities behind explicit imports — please keep that shape when proposing changes. The catalog is frozen: do not add new packages until the module graph work lands.
 
 ## Before you start
 
