@@ -74,17 +74,27 @@ _ = auth.CheckPassword(hash, pw)
 
 ## JWT
 
+Access tokens are HS256 JWTs. Rotating refresh tokens are optional and stored in a `RefreshStore`.
+
+The default `MemoryRefreshStore` is **process-local**: TTL/GC in this process, gone on restart, not shared across replicas. Do not treat in-memory rotation as a production JWT story. Implement `RefreshStore` (Redis/SQL) for multi-instance deploys.
+
 ```go
 tok, exp, _ := a.IssueAccessToken(auth.User{ID: "1", Roles: []string{"admin"}})
 claims, _ := a.ParseAccessToken(tok)
+
+pair, _ := a.IssueTokenPair(user)
+pair, _ = a.Refresh(pair.RefreshToken, user)
+a.RevokeUser(user.ID)
 ```
+
+`irmik.Context.MustUser` panics if no user is in context (use `User()` when the request may be anonymous).
 
 ## OAuth
 
 Implement `auth.Provider` (`Name`, `AuthCodeURL`, `Exchange`). Built-ins:
 
 - `StubProvider` — local/demo exchange (`code=demo`)
-- `GitHubProvider` / `GoogleProvider` — AuthCodeURL ready; `Exchange` left for your HTTP client
+- `GitHubStub` / `GoogleStub` — **not** OAuth clients. `AuthCodeURL` only builds the authorize URL; `Exchange` always returns `ErrOAuthNotImplemented`. There is no GitHub or Google flow in Irmik.
 
 ## CSRF
 

@@ -7,7 +7,7 @@ import (
 )
 
 func TestNewRejectsWeakJWTSecretOutsideDevelopment(t *testing.T) {
-	for _, secret := range []string{"", "dev-only-change-me-jwt-secret-32b"} {
+	for _, secret := range []string{"", "dev-only-change-me-jwt-secret-32b", "not-long-enough"} {
 		cfg := config.Default()
 		cfg.App.Env = "production"
 		cfg.Auth.JWTSecret = secret

@@ -1,6 +1,6 @@
 # Architecture
 
-Irmik is a thin meta-framework around Gin. The public SDK lives under `irmik/`; CLI and build tooling under `cmd/` and `internal/`.
+Irmik is a Gin meta-framework. The public SDK lives under `irmik/`; CLI and build tooling under `cmd/` and `internal/`. The core promise is file-based routes, render modes, and security-minded admin helpers — not “thin `go get`”.
 
 ## Request path (SSR / ISR)
 
@@ -8,7 +8,7 @@ Irmik is a thin meta-framework around Gin. The public SDK lives under `irmik/`; 
 2. Optional **loader** returns view data (`MountOptions.Loaders`).
 3. **render.Engine** executes `page.html` then wraps **layout.html** chain (root → leaf).
 4. Template helpers: `tmplfunc` (`dict`, `slugify`, …) + **island** FuncMap (`island`, `islandRuntime`).
-5. **ISR:** look up `cache.Key(method, path, locale)`; on HIT/STALE serve body with weak `ETag` and `X-Cache`; revalidate in background when stale; on MISS render and `Set`.
+5. **ISR:** look up `cache.Key("GET", path, locale)` (HEAD shares the GET key); on HIT/STALE serve body with weak `ETag` and `X-Cache`; revalidate in background when stale using the same loader path as the request; on MISS render and `Set`.
 6. **Development only:** `devtools` injects the overlay script into HTML and serves `/_irmik/dev/*` (badge, errors, live reload).
 
 ## Build path (SSG / ISR seed)
@@ -61,7 +61,7 @@ flowchart TB
 | `irmik/tmplfunc`, `slug`, `fsutil`, `meta`, `lifecycle` | shared helpers |
 | `internal/cli`, `internal/build`, `internal/hmr` | CLI plumbing |
 
-### Major opt-in (not linked until imported)
+### Major opt-in (not linked into the binary until imported; still downloaded with the module)
 
 | Package | Role | Docs |
 |---------|------|------|
@@ -80,6 +80,6 @@ Primary file: `irmik.yaml` (`app`, `server`, `cache`, `database`, `session`, `au
 
 ## Non-goals (core)
 
-Full i18n URL maps, minify-on-serve, a DI container, GraphQL-in-core, and a mandatory CMS/admin generator are out of scope for the thin core. Opt-in platform packages live beside the core — see [catalog.md](catalog.md) and [roadmap.md](roadmap.md).
+Full i18n URL maps, minify-on-serve, a DI container, GraphQL-in-core, and a mandatory CMS/admin generator are out of scope for the core. Opt-in platform packages live beside it — see [catalog.md](catalog.md) and [roadmap.md](roadmap.md).
 
 Related: [auth.md](auth.md) · [rbac.md](rbac.md) · [database.md](database.md) · [realtime.md](realtime.md) · [admin.md](admin.md) · [api.md](api.md) · [security.md](security.md) · [devtools.md](devtools.md)

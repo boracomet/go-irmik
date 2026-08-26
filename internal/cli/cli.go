@@ -31,6 +31,9 @@ import (
 	_ "github.com/boracomet/go-irmik/irmik/session/redisx"
 )
 
+// ScaffoldModuleVersion is the go-irmik version pinned by `irmik new`.
+const ScaffoldModuleVersion = "v0.1.1"
+
 // Execute runs the root command.
 func Execute() error {
 	return Root().Execute()
@@ -65,29 +68,12 @@ func cmdNew() *cobra.Command {
 				return err
 			}
 			files := map[string]string{
-				"go.mod":       "module " + name + "\n\ngo 1.25.0\n\nrequire github.com/boracomet/go-irmik v0.0.0\n\nreplace github.com/boracomet/go-irmik => ../go-irmik\n",
+				"go.mod":       scaffoldGoMod(name),
 				"irmik.yaml":   "app:\n  name: " + name + "\n  env: development\nserver:\n  host: 127.0.0.1\n  port: 8080\n",
 				".env.example": "# Production only: openssl rand -base64 32\nIRMIK_JWT_SECRET=\n",
 				".gitignore":   ".env\nout/\ndata/\n",
 				"README.md":    "# " + name + "\n\n```sh\ngo run .\n# open http://127.0.0.1:8080\n```\n",
-				"main.go": `package main
-
-import (
-  "context"
-  "github.com/gin-gonic/gin"
-  "github.com/boracomet/go-irmik/irmik"
-  "github.com/boracomet/go-irmik/irmik/config"
-)
-
-func main() {
-  cfg := config.Default()
-  app, err := irmik.New(cfg); if err != nil { panic(err) }
-  app.EnableSecureDefaults()
-  app.Engine.GET("/", func(c *gin.Context) { c.String(200, "Hello from Irmik") })
-  app.Engine.GET("/health", func(c *gin.Context) { c.JSON(200, gin.H{"ok": true}) })
-  if err := app.Run(context.Background()); err != nil { panic(err) }
-}
-`,
+				"main.go":      scaffoldMain(),
 			}
 			if admin {
 				files["README.md"] += "\nThe `--admin` starter adds a minimal in-memory admin surface; configure a real identity store before production.\n"
@@ -103,6 +89,30 @@ func main() {
 	}
 	c.Flags().BoolVar(&admin, "admin", false, "include the admin starter")
 	return c
+}
+
+func scaffoldGoMod(moduleName string) string {
+	return "module " + moduleName + "\n\ngo 1.25.0\n\nrequire github.com/boracomet/go-irmik " + ScaffoldModuleVersion + "\n"
+}
+
+func scaffoldMain() string {
+	return `package main
+
+import (
+  "context"
+  "github.com/gin-gonic/gin"
+  "github.com/boracomet/go-irmik/irmik"
+  "github.com/boracomet/go-irmik/irmik/config"
+)
+
+func main() {
+  cfg := config.Default()
+  app, err := irmik.New(cfg); if err != nil { panic(err) }
+  app.EnableSecureDefaults()
+  app.Engine.GET("/", func(c *gin.Context) { c.String(200, "Hello from Irmik") })
+  if err := app.Run(context.Background()); err != nil { panic(err) }
+}
+`
 }
 
 func loadCfg(cmd *cobra.Command) (config.Config, error) {

@@ -11,14 +11,14 @@ Fair, high-level comparison. “Yes” means first-class or documented in-tree h
 | **Realtime** | Opt-in SSE + WebSocket hub | DIY | Not a focus | DIY | Background workers; WS DIY | WS middleware available |
 | **Admin security defaults** | Headers by default; `EnableSecureDefaults` rate limit | None | Strong site defaults (headers, rate limit, honeypot, IP ban) | DIY | Convention defaults | DIY |
 | **Opt-in catalog** | Wide — upload, queue, mail, openapi, storage, … ([catalog](catalog.md)) | N/A | Site-oriented kit (i18n, SEO, embed) | Middleware ecosystem | Full ecosystem (heavier) | Middleware ecosystem |
-| **Weight / lean linking** | Thin core; blank-import Redis/DB/S3/OTel/etc. | Very lean | Lean; single-binary `embed.FS` focus | Lean | Batteries-included | Lean-ish (fasthttp trade-offs) |
+| **Weight** | Import-opt-in binaries; `go get` still pulls the full module graph (AWS/GORM/OTel in `go.mod`) | Very lean | Lean; single-binary `embed.FS` focus | Lean | Batteries-included | Lean-ish (fasthttp trade-offs) |
 | **Best fit** | Admin/internal apps **and** SSR/SSG sites on Gin | APIs / custom glue | Content/SEO marketing & docs sites | APIs / microservices | Rapid traditional full-stack apps | High-throughput HTTP APIs |
 
 ## Positioning in one line each
 
 | Stack | One-liner |
 |-------|-----------|
-| **Irmik** | Gin meta-framework: file routes + render modes + security-minded admin helpers + wide opt-in platform catalog. |
+| **Irmik** | Gin meta-framework: file routes + render modes + security-minded admin helpers + a frozen opt-in catalog. |
 | **Gin** | Fast HTTP router/middleware; you own the rest. |
 | **StatiGo** | Static-first SEO site framework on chi (overlap with Irmik’s cache/ISR *ideas*; different HTTP + routing model). |
 | **Echo** | Thin, productive HTTP framework — similar “router first” niche to Gin. |

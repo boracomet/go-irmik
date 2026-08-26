@@ -57,7 +57,7 @@ Keys default to `c.ClientIP()` (honors Gin trusted proxies).
 
 | Setting | Guidance |
 |---------|----------|
-| `auth.jwtSecret` / `IRMIK_JWT_SECRET` | **Required** outside development. Startup rejects empty and known demo values; use a long random secret. |
+| `auth.jwtSecret` / `IRMIK_JWT_SECRET` | **Required** outside development. Startup rejects empty, known demo values, and secrets shorter than 32 characters; use a long random secret. |
 | `session.secure` | Cookie `Secure` flag. If omitted, Irmik sets Secure when env is **not** `development`. Force `true` behind HTTPS. |
 | `session` secret / Redis URL | Prefer env (`IRMIK_SESSION_SECRET`, `REDIS_URL`); do not commit real values. |
 
@@ -70,7 +70,7 @@ Report vulnerabilities privately via [SECURITY.md](../SECURITY.md) — do not pa
 3. Strong `IRMIK_JWT_SECRET` (never ship demo secrets)
 4. HTTPS in production (headers already emit HSTS when `app.env` is not development)
 5. Secure session cookies (`session.secure` / production default)
-6. Blank-import only the DB/cache/session drivers you need ([database.md](database.md), README lean linking)
+6. Blank-import only the DB/cache/session drivers you need ([database.md](database.md)). Unused imports stay out of the binary; `go get` still downloads the module graph.
 
 ## Packages
 

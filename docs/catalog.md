@@ -1,6 +1,8 @@
-# Feature catalog — wide catalog, thin core
+# Feature catalog
 
-Irmik keeps **`irmik.New` and the root `irmik` package thin**. Extra capabilities live in **opt-in packages** under `irmik/<name>/`. Import only what you need so Redis, S3, OpenTelemetry, gRPC, image codecs, etc. stay out of default binaries.
+Irmik’s **core promise** is file-based `app/` routes, SSR/SSG/ISR render modes, and security-minded admin helpers (session, CSRF, RBAC, HTMX) that you opt into.
+
+**Binary linking is opt-in via import. Module download is not.** Unused packages (AWS SDK, GORM, OpenTelemetry, gRPC, …) stay out of your binary if you do not import them. `go get github.com/boracomet/go-irmik` still downloads this module’s full `go.mod` require graph. Shrinking that graph is a follow-up; this catalog is frozen (no new packages) until then.
 
 ## How linking works
 
@@ -11,7 +13,7 @@ Irmik keeps **`irmik.New` and the root `irmik` package thin**. Extra capabilitie
 | Blank-import register | `import _ "…/cache/redisx"`, `import _ "…/queue/asynqx"` | Yes (registers driver) |
 | Heavy subpackage | `storage/s3x`, `observe/otelx`, `compress/brotlix`, `grpcx` | Only if you import them |
 
-**Rule:** never hard-import heavy deps into root `irmik` or into always-on `irmik.New`. Prefer small APIs — no DI container.
+**Rule:** never hard-import heavy deps into root `irmik` or into always-on `irmik.New`. Prefer small APIs — no DI container. Import-only still does not shrink `go get`.
 
 ## Core (always available if you use `irmik.New`)
 

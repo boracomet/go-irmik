@@ -2,15 +2,17 @@ package cache
 
 import (
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 )
 
 // Key builds an ISR/page cache key from method, path, and locale.
+// HEAD shares the GET key so a HEAD after GET is a cache hit.
 // Example: GET|/blog/hello|en
 func Key(method, path, locale string) string {
 	method = strings.ToUpper(strings.TrimSpace(method))
-	if method == "" {
+	if method == "" || method == http.MethodHead {
 		method = "GET"
 	}
 	path = strings.TrimSpace(path)

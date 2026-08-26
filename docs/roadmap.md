@@ -1,6 +1,6 @@
 # Roadmap — what else without overloading
 
-Irmik’s rule stays: **thin core, wide opt-in catalog**. New work should be import-only packages or small CLI/config helpers — never hard-wired into `irmik.New`.
+Irmik’s rule stays: **file routes + render modes + security-minded admin helpers**, with extra capabilities behind explicit imports. New catalog packages are frozen until the module `require` graph is addressed (binary linking is already opt-in; `go get` is not).
 
 ## Product must-haves — done
 
@@ -50,6 +50,6 @@ Do **not** pull these into `irmik.New` or the root package:
 
 1. Can it stay behind an explicit import?
 2. Does it help **admin/internal** or **SSR sites** without forcing both?
-3. Does it preserve **Gin compatibility** and lean linking?
+3. Does it preserve **Gin compatibility**? (Binary linking stays import-opt-in; do not claim `go get` is lean.)
 
 See [catalog.md](catalog.md) for what already exists and [compare.md](compare.md) for positioning.

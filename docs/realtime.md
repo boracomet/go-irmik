@@ -9,15 +9,20 @@ Optional packages for long-lived connections on Gin. They do not auto-mount on `
 
 ## Server timeouts
 
-SSE and WebSocket need the HTTP server write timeout disabled (or very large). Irmik’s default `server.writeTimeout` is `30s`, which will cut streams short.
+`http.Server.WriteTimeout` applies from the moment headers are written. Irmik’s default is `30s`.
+
+- **SSE:** `sse.New` clears the per-connection write deadline (`ResponseController.SetWriteDeadline(zero)`), so the default WriteTimeout should not kill an open stream. Heartbeats still help proxies.
+- **WebSocket:** the upgrade hijacks the connection; WriteTimeout does not apply after hijack.
+- **IdleTimeout:** `irmik.App` sets `http.Server.IdleTimeout` (default `60s`) for keep-alive connections between requests. It does not bound an active SSE write.
+
+You can still set `writeTimeout: 0s` if a reverse proxy or custom streaming handler needs it:
 
 ```yaml
 server:
-  writeTimeout: 0s   # required for long-lived SSE / WS
-  readTimeout: 0s    # optional; WS pings handle liveness
+  writeTimeout: 0s
+  readTimeout: 0s
+  idleTimeout: 60s
 ```
-
-Or in code: `cfg.Server.WriteTimeout = 0`.
 
 ## Config / env
 

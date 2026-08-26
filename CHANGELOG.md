@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased
+
+Honesty and correctness pass on v0.1.1. Catalog is frozen; no new packages.
+
+- **ISR revalidate** runs the same loader path as the request (cloned GET + params) instead of skipping `*gin.Context` loaders.
+- **SSE** clears the per-connection write deadline so `http.Server.WriteTimeout` does not kill streams; `App` sets `IdleTimeout` (default 60s).
+- Router **500s** return a generic body and log the error with request id.
+- **`irmik new`** pins `github.com/boracomet/go-irmik v0.1.1` (no sibling `replace`) and does not double-register `/health`.
+- JWT refresh/revoke uses a `RefreshStore` (default process-local memory with TTL/GC). Not a multi-replica store.
+- OAuth `GitHubStub` / `GoogleStub` replace the production-looking providers; `Exchange` always returns `ErrOAuthNotImplemented`.
+- `Context.MustUser` panics when no user is present.
+- `cache.New` errors on unknown drivers (same as session/queue).
+- `queue.Memory` delayed-enqueue vs `Close` no longer panics on a closed channel.
+- **HEAD** does not write a body; ISR cache keys are shared with GET.
+- Plugin `after_start` / stop hook errors are logged. Production JWT secrets must be ≥32 characters (denylist kept).
+- Docs: binary linking is opt-in via import; module download is not.
+
 ## v0.1.1
 
 Responsive images and a development overlay. Production behavior is unchanged:

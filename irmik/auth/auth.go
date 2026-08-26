@@ -5,7 +5,6 @@ package auth
 import (
 	"errors"
 	"net/http"
-	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -48,6 +47,10 @@ type Config struct {
 	RefreshTTL time.Duration
 	// SessionUserKey overrides the session key for user id.
 	SessionUserKey string
+	// RefreshStore holds one-time refresh tokens. Nil uses a process-local
+	// MemoryRefreshStore (TTL/GC). That default does not survive restarts or
+	// work across replicas — implement RefreshStore for multi-instance production.
+	RefreshStore RefreshStore
 }
 
 func (c Config) withDefaults() Config {
@@ -68,15 +71,17 @@ func (c Config) withDefaults() Config {
 
 // Authenticator wires session login and JWT issuance.
 type Authenticator struct {
-	cfg     Config
-	refresh map[string]string
-	revoked map[string]struct{}
-	tokenMu sync.Mutex
+	cfg   Config
+	store RefreshStore
 }
 
 // New returns an Authenticator.
 func New(cfg Config) *Authenticator {
-	return &Authenticator{cfg: cfg.withDefaults(), refresh: make(map[string]string), revoked: make(map[string]struct{})}
+	cfg = cfg.withDefaults()
+	if cfg.RefreshStore == nil {
+		cfg.RefreshStore = NewMemoryRefreshStore(cfg.RefreshTTL)
+	}
+	return &Authenticator{cfg: cfg, store: cfg.RefreshStore}
 }
 
 // Config returns a copy of the auth config.

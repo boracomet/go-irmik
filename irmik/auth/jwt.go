@@ -84,6 +84,8 @@ func (a *Authenticator) ParseAccessToken(token string) (*Claims, error) {
 }
 
 // IssueTokenPair creates a short-lived access token and a one-time refresh token.
+// The refresh jti is stored in RefreshStore. The default store is process-local
+// memory with TTL/GC — not a multi-replica production backend.
 func (a *Authenticator) IssueTokenPair(user User) (TokenPair, error) {
 	access, exp, err := a.IssueAccessToken(user)
 	if err != nil {
@@ -103,9 +105,9 @@ func (a *Authenticator) IssueTokenPair(user User) (TokenPair, error) {
 	if err != nil {
 		return TokenPair{}, err
 	}
-	a.tokenMu.Lock()
-	a.refresh[id] = user.ID
-	a.tokenMu.Unlock()
+	if err := a.store.Put(id, user.ID, time.Now().Add(a.cfg.RefreshTTL)); err != nil {
+		return TokenPair{}, err
+	}
 	return TokenPair{AccessToken: access, RefreshToken: refresh, ExpiresAt: exp}, nil
 }
 
@@ -115,27 +117,16 @@ func (a *Authenticator) Refresh(token string, user User) (TokenPair, error) {
 	if err != nil {
 		return TokenPair{}, ErrInvalidToken
 	}
-	a.tokenMu.Lock()
-	valid := a.refresh[claims.ID] == claims.Subject
-	delete(a.refresh, claims.ID)
-	_, revoked := a.revoked[claims.Subject]
-	a.tokenMu.Unlock()
-	if !valid || revoked || user.ID != claims.Subject {
+	userID, ok := a.store.Consume(claims.ID)
+	if !ok || userID != claims.Subject || a.store.Revoked(claims.Subject) || user.ID != claims.Subject {
 		return TokenPair{}, ErrInvalidToken
 	}
 	return a.IssueTokenPair(user)
 }
 
-// RevokeUser invalidates outstanding refresh tokens for a user.
+// RevokeUser invalidates outstanding refresh tokens for a user in RefreshStore.
 func (a *Authenticator) RevokeUser(userID string) {
-	a.tokenMu.Lock()
-	defer a.tokenMu.Unlock()
-	a.revoked[userID] = struct{}{}
-	for id, uid := range a.refresh {
-		if uid == userID {
-			delete(a.refresh, id)
-		}
-	}
+	a.store.RevokeUser(userID)
 }
 
 func (a *Authenticator) parseRefresh(token string) (*refreshClaims, error) {

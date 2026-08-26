@@ -100,6 +100,9 @@ func TestKey(t *testing.T) {
 	if got := Key("", "", ""); got != "GET|/|en" {
 		t.Fatalf("defaults got %q", got)
 	}
+	if got := Key("HEAD", "/blog", "en"); got != "GET|/blog|en" {
+		t.Fatalf("HEAD should share GET key, got %q", got)
+	}
 }
 
 func TestNewDrivers(t *testing.T) {
@@ -116,11 +119,10 @@ func TestNewDrivers(t *testing.T) {
 	}
 	_ = s.Close()
 
-	s, err = New(Options{Driver: "unknown"})
-	if err != nil {
-		t.Fatal(err)
+	_, err = New(Options{Driver: "unknown"})
+	if err == nil {
+		t.Fatal("expected error for unknown driver")
 	}
-	_ = s.Close()
 
 	_, err = New(Options{Driver: "redis"})
 	if err == nil {
