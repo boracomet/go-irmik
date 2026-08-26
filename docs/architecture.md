@@ -6,7 +6,7 @@ Irmik is a Gin meta-framework. The public SDK lives under `irmik/`; CLI and buil
 
 1. Gin matches a file-based route from `app/` discovery.
 2. Optional **loader** returns view data (`MountOptions.Loaders`).
-3. **render.Engine** executes `page.html` then wraps **layout.html** chain (root → leaf).
+3. **render.Engine** compiles `page.html` and each **layout.html** once (Clone of shared partials so `{{define}}`/`{{block}}` stay per-page), then wraps the layout chain (root → leaf). Disk edits are visible after `Reload`.
 4. Template helpers: `tmplfunc` (`dict`, `slugify`, …) + **island** FuncMap (`island`, `islandRuntime`).
 5. **ISR:** look up `cache.Key("GET", path, locale)` (HEAD shares the GET key); on HIT/STALE serve body with weak `ETag` and `X-Cache`; revalidate in background when stale using the same loader path as the request; on MISS render and `Set`.
 6. **Development only:** `devtools` injects the overlay script into HTML and serves `/_irmik/dev/*` (badge, errors, live reload).

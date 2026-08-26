@@ -33,12 +33,18 @@ type Options struct {
 }
 
 // Engine compiles and executes page + layout templates.
+//
+// Page and layout files are parsed once and reused until Reload, SetFuncs, or
+// SetIslandFunc. Shared partials are Clone'd per file so {{define}}/{{block}}
+// names in one page cannot collide with another.
 type Engine struct {
-	mu       sync.RWMutex
-	opts     Options
-	funcs    template.FuncMap
-	island   IslandFunc
-	partials *template.Template // shared partials base
+	mu         sync.RWMutex
+	opts       Options
+	funcs      template.FuncMap
+	island     IslandFunc
+	partials   *template.Template // shared partials base; never executed
+	compiled   map[string]*template.Template
+	compileGen uint64 // bumped when compiled is dropped
 }
 
 // New creates an Engine. Call Reload after construction (or Mount) to load partials.
@@ -47,9 +53,10 @@ func New(opts Options) (*Engine, error) {
 		opts.AppDir = "app"
 	}
 	e := &Engine{
-		opts:   opts,
-		island: DefaultIsland,
-		funcs:  template.FuncMap{},
+		opts:     opts,
+		island:   DefaultIsland,
+		funcs:    template.FuncMap{},
+		compiled: make(map[string]*template.Template),
 	}
 	// Merge shared template helpers (dict, slugify, formatDate, …).
 	for k, v := range tmplfunc.Map() {
@@ -76,6 +83,9 @@ func (e *Engine) SetIslandFunc(f IslandFunc) {
 	}
 	e.island = f
 	e.rebuildFuncs()
+	// The default island helper looks up e.island at execute time, but dropping
+	// compiled trees keeps the FuncMap snapshot on cached templates consistent.
+	e.dropCompiledLocked()
 }
 
 // SetFuncs merges additional FuncMap entries (e.g. SEO helpers).
@@ -86,6 +96,7 @@ func (e *Engine) SetFuncs(fm template.FuncMap) {
 		e.funcs[k] = v
 	}
 	e.rebuildFuncs()
+	e.dropCompiledLocked()
 }
 
 func (e *Engine) rebuildFuncs() {
@@ -119,7 +130,13 @@ func (e *Engine) rebuildFuncs() {
 	_ = island
 }
 
-// Reload reloads shared partials from TemplatesDir.
+func (e *Engine) dropCompiledLocked() {
+	e.compiled = make(map[string]*template.Template)
+	e.compileGen++
+}
+
+// Reload reloads shared partials from TemplatesDir and drops compiled
+// page/layout templates so the next Render reads files from disk again.
 func (e *Engine) Reload() error {
 	e.mu.Lock()
 	defer e.mu.Unlock()
@@ -149,6 +166,7 @@ func (e *Engine) Reload() error {
 		}
 	}
 	e.partials = t
+	e.dropCompiledLocked()
 	return nil
 }
 
@@ -164,31 +182,13 @@ type Data struct {
 // Render writes the page wrapped by layouts (innermost → outermost).
 // pageFile is an absolute or project-relative path to page.html.
 // layoutFiles are ordered root → leaf (root layout is outermost).
+//
+// Templates are compiled on first use and served from cache. Disk changes are
+// not visible until Reload (or SetFuncs / SetIslandFunc, which drop the cache).
 func (e *Engine) Render(w io.Writer, pageFile string, layoutFiles []string, data Data) error {
-	e.mu.RLock()
-	funcs := cloneFuncs(e.funcs)
-	partials := e.partials
-	e.mu.RUnlock()
-
-	pageBody, err := os.ReadFile(pageFile)
+	pt, err := e.getCompiled(pageFile, "page")
 	if err != nil {
-		return fmt.Errorf("read page %s: %w", pageFile, err)
-	}
-
-	// Render page content first.
-	pt := template.New("page").Funcs(funcs)
-	if partials != nil {
-		for _, t := range partials.Templates() {
-			if t.Name() == "partials" {
-				continue
-			}
-			if _, err := pt.AddParseTree(t.Name(), t.Tree); err != nil {
-				return err
-			}
-		}
-	}
-	if _, err := pt.Parse(string(pageBody)); err != nil {
-		return fmt.Errorf("parse page %s: %w", pageFile, err)
+		return err
 	}
 
 	var buf bytes.Buffer
@@ -200,23 +200,9 @@ func (e *Engine) Render(w io.Writer, pageFile string, layoutFiles []string, data
 	// Wrap with layouts from leaf → root (closest layout first).
 	for i := len(layoutFiles) - 1; i >= 0; i-- {
 		lf := layoutFiles[i]
-		lb, err := os.ReadFile(lf)
+		lt, err := e.getCompiled(lf, "layout")
 		if err != nil {
-			return fmt.Errorf("read layout %s: %w", lf, err)
-		}
-		lt := template.New("layout").Funcs(funcs)
-		if partials != nil {
-			for _, t := range partials.Templates() {
-				if t.Name() == "partials" {
-					continue
-				}
-				if _, err := lt.AddParseTree(t.Name(), t.Tree); err != nil {
-					return err
-				}
-			}
-		}
-		if _, err := lt.Parse(string(lb)); err != nil {
-			return fmt.Errorf("parse layout %s: %w", lf, err)
+			return err
 		}
 		wrapData := data
 		wrapData.Content = template.HTML(inner)
@@ -238,6 +224,56 @@ func (e *Engine) RenderToBytes(pageFile string, layoutFiles []string, data Data)
 		return nil, err
 	}
 	return buf.Bytes(), nil
+}
+
+func (e *Engine) getCompiled(path, kind string) (*template.Template, error) {
+	key := kind + "\x00" + path
+
+	e.mu.RLock()
+	if t, ok := e.compiled[key]; ok {
+		e.mu.RUnlock()
+		return t, nil
+	}
+	funcs := cloneFuncs(e.funcs)
+	partials := e.partials
+	gen := e.compileGen
+	e.mu.RUnlock()
+
+	body, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("read %s %s: %w", kind, path, err)
+	}
+	t, err := parseWithPartials(kind, string(body), funcs, partials)
+	if err != nil {
+		return nil, fmt.Errorf("parse %s %s: %w", kind, path, err)
+	}
+
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	if e.compileGen == gen {
+		if cached, ok := e.compiled[key]; ok {
+			return cached, nil
+		}
+		e.compiled[key] = t
+	}
+	return t, nil
+}
+
+// parseWithPartials builds an isolated template set for one page or layout file.
+// Clone of the shared partials base is required: parsing {{define}}/{{block}}
+// into the shared set would let later files overwrite earlier names.
+func parseWithPartials(name, src string, funcs template.FuncMap, partials *template.Template) (*template.Template, error) {
+	var t *template.Template
+	if partials != nil {
+		c, err := partials.Clone()
+		if err != nil {
+			return nil, err
+		}
+		t = c.New(name).Funcs(funcs)
+	} else {
+		t = template.New(name).Funcs(funcs)
+	}
+	return t.Parse(src)
 }
 
 // DefaultIsland emits a hydrate target for the React/Vite island runtime.

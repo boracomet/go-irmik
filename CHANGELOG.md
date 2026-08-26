@@ -4,6 +4,7 @@
 
 Honesty and correctness pass on v0.1.1. Catalog is frozen; no new packages.
 
+- **SSR template cache** — `render.Engine` compiles each page and layout once and reuses the parsed tree. `Reload` (and `SetFuncs` / `SetIslandFunc`) drop the cache so disk edits from `irmik dev` still apply.
 - **ISR revalidate** runs the same loader path as the request (cloned GET + params) instead of skipping `*gin.Context` loaders.
 - **SSE** clears the per-connection write deadline so `http.Server.WriteTimeout` does not kill streams; `App` sets `IdleTimeout` (default 60s).
 - Router **500s** return a generic body and log the error with request id.
