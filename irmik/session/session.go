@@ -75,9 +75,9 @@ func MustGet(c *gin.Context) *Session {
 
 func (m *Manager) load(c *gin.Context) *Session {
 	sess := &Session{
-		mgr:    m,
-		Values: make(map[string]any),
-		Flash:  make(map[string]any),
+		mgr:      m,
+		Values:   make(map[string]any),
+		Flash:    make(map[string]any),
 		outFlash: make(map[string]any),
 	}
 	cookie, err := c.Cookie(m.opts.Name)

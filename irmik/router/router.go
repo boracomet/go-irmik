@@ -228,21 +228,21 @@ func collectLayouts(appDir, pageDir string) ([]string, error) {
 
 // Options configures router mounting.
 type Options struct {
-	AppDir     string
-	OutDir     string
-	PublicDir  string
-	Locale     string
-	Cache      cache.Store
-	Renderer   *render.Engine
-	Loaders    map[string]Loader
-	StaticFS   http.FileSystem // optional override for public/
+	AppDir    string
+	OutDir    string
+	PublicDir string
+	Locale    string
+	Cache     cache.Store
+	Renderer  *render.Engine
+	Loaders   map[string]Loader
+	StaticFS  http.FileSystem // optional override for public/
 }
 
 // Router holds discovered routes and serves them.
 type Router struct {
-	opts   Options
-	routes []Route
-	mu     sync.Mutex
+	opts     Options
+	routes   []Route
+	mu       sync.Mutex
 	inflight map[string]bool // ISR revalidate keys
 }
 
@@ -568,4 +568,3 @@ func contentType(e cache.Entry) string {
 	}
 	return "text/html; charset=utf-8"
 }
-

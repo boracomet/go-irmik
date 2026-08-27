@@ -1,6 +1,6 @@
 # Contributing to Irmik
 
-Thanks for helping improve Irmik. The core promise is **file-based routes, render modes, and security-minded admin helpers**, with extra capabilities behind explicit imports — please keep that shape when proposing changes. The catalog is frozen: do not add new packages until the module graph work lands.
+Thanks for helping improve Irmik. The core promise is **file-based routes, render modes, and security-minded admin helpers**, with extra capabilities behind explicit imports — please keep that shape when proposing changes. The catalog is frozen: do not add new packages. Heavy backends (GORM, S3, OTel, gRPC, asynq) are nested modules; do not pull them into the root `go.mod`.
 
 ## Before you start
 
@@ -13,7 +13,8 @@ Thanks for helping improve Irmik. The core promise is **file-based routes, rende
 ```bash
 git clone https://github.com/boracomet/go-irmik.git
 cd go-irmik
-go test ./...
+go test ./...          # uses go.work (root + nested catalog modules)
+# or: (cd irmik/db/gormx && GOWORK=off go test ./...)
 ```
 
 Useful demos:

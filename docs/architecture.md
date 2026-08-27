@@ -1,6 +1,6 @@
 # Architecture
 
-Irmik is a Gin meta-framework. The public SDK lives under `irmik/`; CLI and build tooling under `cmd/` and `internal/`. The core promise is file-based routes, render modes, and security-minded admin helpers — not “thin `go get`”.
+Irmik is a Gin meta-framework. The public SDK lives under `irmik/`; CLI and build tooling under `cmd/` and `internal/`. The core promise is file-based routes, render modes, and security-minded admin helpers. Root `go get` is the core module; AWS/GORM/OTel/gRPC/asynq are nested modules (see [catalog.md](catalog.md)).
 
 ## Request path (SSR / ISR)
 
@@ -61,13 +61,14 @@ flowchart TB
 | `irmik/tmplfunc`, `slug`, `fsutil`, `meta`, `lifecycle` | shared helpers |
 | `internal/cli`, `internal/build`, `internal/hmr` | CLI plumbing |
 
-### Major opt-in (not linked into the binary until imported; still downloaded with the module)
+### Major opt-in (import to link; nested modules need their own `go get`)
 
 | Package | Role | Docs |
 |---------|------|------|
 | `irmik/session`, `session/redisx`, `csrf` | Cookie sessions + CSRF | [auth.md](auth.md) |
 | `irmik/auth`, `irmik/rbac`, `rbac/store` | Login/JWT/passwords/OAuth stubs + RBAC | [auth.md](auth.md), [rbac.md](rbac.md) |
-| `irmik/db`, `db/sqlite\|postgres\|mysql`, `migrate`, `gormx` | SQL + migrations (+ optional GORM) | [database.md](database.md) |
+| `irmik/db`, `db/sqlite\|postgres\|mysql`, `migrate` | SQL + migrations (root module) | [database.md](database.md) |
+| `irmik/db/gormx` | Optional GORM (nested module) | [database.md](database.md) |
 | `irmik/sse`, `irmik/ws` | SSE + WebSocket hubs | [realtime.md](realtime.md) |
 | `irmik/admin`, `api`, `paginate`, `htmx` | Admin UI + REST `/api/v1` | [admin.md](admin.md), [api.md](api.md) |
 | `irmik/validate`, `forms`, `cors`, `audit`, `health`, … | Platform helpers | [catalog.md](catalog.md) |

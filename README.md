@@ -42,10 +42,30 @@ For production, set `IRMIK_JWT_SECRET` to a strong random value. Empty and demo
 JWT secrets are rejected outside development. Do not store access tokens in
 `localStorage`; use an httpOnly BFF cookie or a server session.
 
-`go get` downloads this module’s full `go.mod` graph, including AWS, GORM, and
-OpenTelemetry, even when your application never imports those packages.
-**Binary linking is opt-in via import; module download is not.** Unused catalog
-packages stay out of the binary only if you do not import them.
+Core lives in the root module:
+
+```sh
+go get github.com/boracomet/go-irmik
+```
+
+That does **not** download AWS, GORM, the OpenTelemetry SDK, gRPC, or asynq.
+SQL drivers, Redis, migrate, and similar opt-in packages that still live in
+the root module are downloaded with it; they are linked only if you import them.
+
+Heavy catalog backends are **nested modules**. Import paths are unchanged;
+`go get` the nested path when you need one:
+
+```sh
+go get github.com/boracomet/go-irmik/irmik/db/gormx
+go get github.com/boracomet/go-irmik/irmik/storage/s3x
+go get github.com/boracomet/go-irmik/irmik/observe/otelx
+go get github.com/boracomet/go-irmik/irmik/grpcx
+go get github.com/boracomet/go-irmik/irmik/queue/asynqx
+```
+
+Nested modules are versioned with their own tags (for example
+`irmik/db/gormx/v0.2.0`) once that cut is tagged. Until then, pin a commit or
+`@main`. See [catalog](docs/catalog.md).
 
 Links: [catalog](docs/catalog.md) · [auth](docs/auth.md) ·
 [security](docs/security.md) · [devtools](docs/devtools.md) ·

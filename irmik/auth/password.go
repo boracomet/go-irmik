@@ -16,7 +16,7 @@ import (
 type HashAlgo string
 
 const (
-	AlgoBcrypt  HashAlgo = "bcrypt"
+	AlgoBcrypt   HashAlgo = "bcrypt"
 	AlgoArgon2id HashAlgo = "argon2id"
 )
 

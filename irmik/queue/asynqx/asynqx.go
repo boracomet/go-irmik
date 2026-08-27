@@ -1,7 +1,8 @@
 // Package asynqx provides an asynq (Redis) backend for irmik/queue.
 //
-// Opt-in (keeps hibiken/asynq out of binaries that do not import this package):
+// Nested module (keeps hibiken/asynq out of a root `go get`):
 //
+//	go get github.com/boracomet/go-irmik/irmik/queue/asynqx
 //	import _ "github.com/boracomet/go-irmik/irmik/queue/asynqx"
 //
 //	q, err := queue.New(queue.Options{Driver: "asynq", RedisURL: "redis://localhost:6379/0"})

@@ -1,7 +1,6 @@
 // Package otelx provides optional OpenTelemetry bootstrap helpers.
 //
-// Call Setup explicitly — the OTel SDK is not pulled into binaries that never
-// import this package.
+// Nested module: go get github.com/boracomet/go-irmik/irmik/observe/otelx
 //
 //	shutdown, err := otelx.Setup(ctx, otelx.Options{Service: "myapp"})
 //	defer shutdown(context.Background())

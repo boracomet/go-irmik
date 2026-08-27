@@ -44,9 +44,10 @@ type App struct {
 	// Devtools is the development overlay (nil outside development).
 	Devtools *devtools.Dev
 
-	ready       atomic.Bool
-	readyChecks *health.Registry
-	srv         *http.Server
+	ready         atomic.Bool
+	readyChecks   *health.Registry
+	srv           *http.Server
+	secureHeaders atomic.Pointer[middleware.SecureHeadersConfig]
 }
 
 // MountOptions configures file-based page mounting.
@@ -105,7 +106,13 @@ func New(cfg config.Config) (*App, error) {
 		sec.HSTSIncludeSubdomains = true
 		sec.FrameAncestors = "'none'"
 	}
-	engine.Use(middleware.SecureHeaders(sec))
+	app.secureHeaders.Store(&sec)
+	engine.Use(middleware.SecureHeadersFunc(func() middleware.SecureHeadersConfig {
+		if p := app.secureHeaders.Load(); p != nil {
+			return *p
+		}
+		return middleware.DefaultSecureHeaders()
+	}))
 
 	if len(cfg.Server.TrustedProxies) > 0 {
 		if err := engine.SetTrustedProxies(cfg.Server.TrustedProxies); err != nil {
@@ -153,10 +160,12 @@ func (a *App) EnableRateLimit(cfg middleware.RateLimitConfig) {
 	a.Engine.Use(middleware.RateLimit(cfg))
 }
 
-// EnableSecureHeaders remounts security headers with a custom config
-// (e.g. CSP frame-ancestors). Prefer calling early after New.
+// EnableSecureHeaders replaces the security-header config mounted in New.
+// It does not stack another middleware: Skip flags and custom CSP/frame
+// values take effect, and stale defaults from New are not kept.
 func (a *App) EnableSecureHeaders(cfg middleware.SecureHeadersConfig) {
-	a.Engine.Use(middleware.SecureHeaders(cfg))
+	c := cfg
+	a.secureHeaders.Store(&c)
 }
 
 // UseRequestLog mounts structured slog request logging (method, path, status,

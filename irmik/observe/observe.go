@@ -1,5 +1,6 @@
 // Package observe provides structured slog helpers for Irmik apps.
-// For OpenTelemetry metrics/traces, import irmik/observe/otelx separately.
+// For OpenTelemetry metrics/traces, go get the nested module
+// github.com/boracomet/go-irmik/irmik/observe/otelx.
 package observe
 
 import (

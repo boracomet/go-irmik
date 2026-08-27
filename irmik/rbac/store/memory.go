@@ -10,8 +10,8 @@ import (
 // Memory is an in-process Store for tests and demos.
 type Memory struct {
 	mu          sync.RWMutex
-	roles       map[string]string   // name → description
-	permissions map[string]string   // name → description
+	roles       map[string]string // name → description
+	permissions map[string]string // name → description
 	rolePerms   map[string]map[string]struct{}
 	userRoles   map[string]map[string]struct{}
 }

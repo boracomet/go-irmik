@@ -1,7 +1,8 @@
 // Package s3x provides an S3-compatible storage.Store using the AWS SDK v2.
 //
-// Opt-in (keeps AWS SDK out of binaries that do not import this package):
+// Nested module (keeps AWS SDK out of a root `go get`):
 //
+//	go get github.com/boracomet/go-irmik/irmik/storage/s3x
 //	store, err := s3x.Open(ctx, s3x.Options{Bucket: "my-bucket", Region: "us-east-1"})
 //
 // Credentials follow the default AWS SDK chain (env, shared config, IAM role).
@@ -24,8 +25,8 @@ import (
 
 // Options configures the S3 client.
 type Options struct {
-	Bucket   string
-	Region   string
+	Bucket string
+	Region string
 	// Endpoint overrides the S3 API endpoint (MinIO, R2, etc.).
 	Endpoint string
 	// PathStyle forces path-style addressing (often required for MinIO).
