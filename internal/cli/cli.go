@@ -32,7 +32,7 @@ import (
 )
 
 // ScaffoldModuleVersion is the go-irmik version pinned by `irmik new`.
-const ScaffoldModuleVersion = "v0.1.1"
+const ScaffoldModuleVersion = "v0.2.0"
 
 // Execute runs the root command.
 func Execute() error {
