@@ -8,9 +8,9 @@
 
 **Keep Gin. Stop rebuilding the application layer.**
 
-`app.Engine` is still `*gin.Engine`. Irmik is file routes, SSR/SSG/ISR, and
-opt-in session/CSRF/RBAC/HTMX admin so you don't rebuild that glue every
-Friday. JSON-only APIs should stay on Gin. The thin core at v0.2.0 is true
+`app.Engine` is still `*gin.Engine`. Irmik is the application layer (file
+routes, SSR/SSG/ISR, opt-in session/CSRF/RBAC/HTMX admin) so you stop
+reproducing it. JSON-only APIs stay on Gin. The thin core at v0.2.0 is true
 because heavy catalog (GORM, S3, OTel, gRPC, asynq) lives in nested modules —
 this is not a megakit.
 
