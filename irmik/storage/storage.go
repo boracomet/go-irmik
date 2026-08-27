@@ -1,6 +1,7 @@
 // Package storage defines a small object-storage interface with a local filesystem
-// implementation. For S3-compatible backends, import irmik/storage/s3x separately
-// so the AWS SDK is not linked into default binaries.
+// implementation. For S3-compatible backends, go get the nested module
+// github.com/boracomet/go-irmik/irmik/storage/s3x so the AWS SDK is not part of
+// a root `go get`.
 package storage
 
 import (

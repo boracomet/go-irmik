@@ -1,6 +1,6 @@
 // Package grpcx provides thin gRPC server/client bootstrap helpers.
 //
-// Opt-in: google.golang.org/grpc is only linked when this package is imported.
+// Nested module: go get github.com/boracomet/go-irmik/irmik/grpcx
 // Do not import grpcx from the root irmik package.
 package grpcx
 

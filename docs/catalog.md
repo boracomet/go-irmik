@@ -2,18 +2,35 @@
 
 Irmik’s **core promise** is file-based `app/` routes, SSR/SSG/ISR render modes, and security-minded admin helpers (session, CSRF, RBAC, HTMX) that you opt into.
 
-**Binary linking is opt-in via import. Module download is not.** Unused packages (AWS SDK, GORM, OpenTelemetry, gRPC, …) stay out of your binary if you do not import them. `go get github.com/boracomet/go-irmik` still downloads this module’s full `go.mod` require graph. Shrinking that graph is a follow-up; this catalog is frozen (no new packages) until then.
+This catalog is **frozen** (no new packages). Heavy backends that used to live in the root `go.mod` are nested modules so a core `go get` does not download them.
+
+## Modules
+
+| `go get` | What you download |
+|----------|-------------------|
+| `github.com/boracomet/go-irmik` | Root module: core + opt-in packages that stay in-tree (sessions, db drivers, migrate, Redis, brotli, imagex, …). **Not** AWS, GORM, OTel SDK, gRPC, or asynq. |
+| `github.com/boracomet/go-irmik/irmik/db/gormx` | GORM helper |
+| `github.com/boracomet/go-irmik/irmik/storage/s3x` | AWS SDK v2 S3 store |
+| `github.com/boracomet/go-irmik/irmik/observe/otelx` | OpenTelemetry SDK bootstrap (experimental) |
+| `github.com/boracomet/go-irmik/irmik/grpcx` | gRPC server/client helpers |
+| `github.com/boracomet/go-irmik/irmik/queue/asynqx` | hibiken/asynq queue driver |
+
+Import paths are the same as before (`irmik/storage/s3x`, …). After v0.2.0, nested modules are tagged as `irmik/<path>/v0.2.0` (for example `irmik/db/gormx/v0.2.0`). Until those tags exist, pin `@main` or a commit.
+
+A couple of tiny OpenTelemetry API modules (`otel/trace`, `otelhttp`) may still appear as **indirect** root deps via golang-migrate’s test graph (Docker). That is not the OTel SDK and is not `otelx`.
 
 ## How linking works
 
-| Import style | When to use | Linked into binary? |
-|--------------|-------------|---------------------|
-| Nothing | Core SSR/SSG/ISR app | Only packages you already use |
-| Explicit `Open` / `New` | `storage.OpenLocal`, `mail.NewSMTP`, `queue.NewMemory`, `asynqx.Open` | Yes, that package + its deps |
-| Blank-import register | `import _ "…/cache/redisx"`, `import _ "…/queue/asynqx"` | Yes (registers driver) |
-| Heavy subpackage | `storage/s3x`, `observe/otelx`, `compress/brotlix`, `grpcx` | Only if you import them |
+| Import style | When to use | Downloaded with root `go get`? | Linked into binary? |
+|--------------|-------------|--------------------------------|---------------------|
+| Nothing extra | Core SSR/SSG/ISR app | Root module only | Only packages you already use |
+| Explicit `Open` / `New` | `storage.OpenLocal`, `mail.NewSMTP`, `queue.NewMemory` | Yes (root) | Yes, that package + its deps |
+| Nested module | `s3x.Open`, `gormx.Open`, `asynqx.Open`, `otelx.Setup`, `grpcx.NewServer` | **No** — `go get` the nested path | Yes, once imported |
+| Blank-import register | `import _ "…/cache/redisx"` | Yes (root) | Yes (registers driver) |
+| Blank-import asynq | `import _ "…/queue/asynqx"` | **No** — nested module | Yes (registers driver) |
+| In-root heavy-ish | `compress/brotlix`, `imagex`, db drivers | Yes (root) | Only if you import them |
 
-**Rule:** never hard-import heavy deps into root `irmik` or into always-on `irmik.New`. Prefer small APIs — no DI container. Import-only still does not shrink `go get`.
+**Rule:** never hard-import nested catalog modules into root `irmik` or `irmik.New`. Prefer small APIs — no DI container.
 
 ## Core (always available if you use `irmik.New`)
 
@@ -44,7 +61,7 @@ Irmik’s **core promise** is file-based `app/` routes, SSR/SSG/ISR render modes
 | `irmik/validate` | explicit | go-playground/validator |
 | `irmik/db` | explicit | `database/sql` open |
 | `irmik/db/postgres`, `sqlite`, `mysql` | blank/register | Driver-specific deps |
-| `irmik/db/gormx` | explicit | GORM |
+| `irmik/db/gormx` | explicit **nested module** | GORM |
 | `irmik/migrate` | explicit / CLI | golang-migrate |
 | `irmik/sse`, `irmik/ws` | explicit | Realtime helpers |
 
@@ -54,20 +71,20 @@ Irmik’s **core promise** is file-based `app/` routes, SSR/SSG/ISR render modes
 |---------|--------|----------------|------------|
 | `irmik/upload` | Stable | `upload.Save(c, upload.Options{…})` | none |
 | `irmik/storage` | Stable | `storage.OpenLocal("./data")` | none |
-| `irmik/storage/s3x` | Stable | `s3x.Open(ctx, s3x.Options{Bucket: "…"})` | AWS SDK v2 |
+| `irmik/storage/s3x` | Stable | nested module: `go get …/irmik/storage/s3x` then `s3x.Open` | AWS SDK v2 |
 | `irmik/forms` | Stable | `forms.BindForm` + `forms.CSRFInput(token)` | validate only (no session) |
 | `irmik/mail` | Stable | `mail.NewSMTP(cfg)` / `mail.Memory` | `net/smtp` |
 | `irmik/queue` | Stable | `queue.NewMemory(64)` + `Run` | none |
-| `irmik/queue/asynqx` | Stable | blank-import or `asynqx.Open(opts)` | hibiken/asynq + Redis |
+| `irmik/queue/asynqx` | Stable | nested module: blank-import or `asynqx.Open(opts)` | hibiken/asynq + Redis |
 | `irmik/scheduler` | Stable | `scheduler.New()` + `Every` / `AddCron` / `AddCronTZ` | robfig/cron/v3 (scheduler only) |
 | `irmik/openapi` | Experimental | `openapi.New(…).Mount` + `MountSwagger` | none (Swagger UI via CDN) |
 | `irmik/observe` | Stable | `observe.NewLogger(opts)` | `log/slog` |
-| `irmik/observe/otelx` | Experimental | `otelx.Setup(ctx, opts)` | OpenTelemetry SDK |
+| `irmik/observe/otelx` | Experimental | nested module: `otelx.Setup(ctx, opts)` | OpenTelemetry SDK |
 | `irmik/compress` | Stable | `r.Use(compress.Gzip())` | stdlib gzip |
 | `irmik/compress/brotlix` | Stable | `r.Use(brotlix.Brotli())` | andybalholm/brotli |
 | `irmik/imagex` | Stable | `Pipeline` (`{{ img }}` + `/_irmik/img`) · `Variants` / `WriteVariants` · `Transform` | x/image + deepteams/webp (pure Go) |
 | `irmik/secrets` | Stable | `secrets.Env{Prefix:"IRMIK_"}` | none |
-| `irmik/grpcx` | Stable | `grpcx.NewServer(opts).ListenAndServe(ctx)` | google.golang.org/grpc |
+| `irmik/grpcx` | Stable | nested module: `grpcx.NewServer(opts).ListenAndServe(ctx)` | google.golang.org/grpc |
 | `irmik/proxy` | Stable | `proxy.Handler(proxy.Options{Target: "…"})` | `httputil` |
 | `irmik/testkit` | Stable | `testkit.New(t).GET("/").Do()` | gin test |
 | `irmik/audit` | Stable | `audit.Record` + `audit.Middleware(sink)` | slog / memory |
@@ -100,7 +117,7 @@ _ = store
 ### S3 (opt-in SDK)
 
 ```go
-import "github.com/boracomet/go-irmik/irmik/storage/s3x"
+import "github.com/boracomet/go-irmik/irmik/storage/s3x" // go get this nested module
 
 store, err := s3x.Open(ctx, s3x.Options{
     Bucket: "my-bucket", Region: "us-east-1",
@@ -192,7 +209,7 @@ Docs: [api.md](api.md), [admin.md](admin.md), [rbac.md](rbac.md). Showcase: [exa
 ```go
 import (
     "github.com/boracomet/go-irmik/irmik/queue"
-    _ "github.com/boracomet/go-irmik/irmik/queue/asynqx" // registers "asynq"
+    _ "github.com/boracomet/go-irmik/irmik/queue/asynqx" // nested module; registers "asynq"
 )
 
 q, err := queue.New(queue.Options{

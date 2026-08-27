@@ -4,4 +4,19 @@ run:
   timeout: 5m
 
 linters:
-  default: standard
+  default: none
+  enable:
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/boracomet/go-irmik

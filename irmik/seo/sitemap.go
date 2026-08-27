@@ -10,10 +10,10 @@ import (
 
 // URLEntry is one sitemap URL row.
 type URLEntry struct {
-	Loc        string
-	LastMod    *time.Time
-	ChangeFreq string  // always|hourly|daily|weekly|monthly|yearly|never
-	Priority   float64 // 0.0–1.0; zero means omit unless SetPriority is used via PrioritySet
+	Loc         string
+	LastMod     *time.Time
+	ChangeFreq  string  // always|hourly|daily|weekly|monthly|yearly|never
+	Priority    float64 // 0.0–1.0; zero means omit unless SetPriority is used via PrioritySet
 	prioritySet bool
 }
 
@@ -25,8 +25,8 @@ func (e URLEntry) WithPriority(p float64) URLEntry {
 }
 
 type urlset struct {
-	XMLName xml.Name   `xml:"urlset"`
-	Xmlns   string     `xml:"xmlns,attr"`
+	XMLName xml.Name     `xml:"urlset"`
+	Xmlns   string       `xml:"xmlns,attr"`
 	URLs    []sitemapURL `xml:"url"`
 }
 

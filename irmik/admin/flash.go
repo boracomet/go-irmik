@@ -12,8 +12,8 @@ import (
 
 // Common flash keys for admin UIs.
 const (
-	FlashNotice = "notice"
-	FlashError  = "error"
+	FlashNotice  = "notice"
+	FlashError   = "error"
 	FlashSuccess = "success"
 )
 

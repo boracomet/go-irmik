@@ -1,9 +1,10 @@
 // Package queue provides a small job-queue interface and an in-memory implementation
 // with a worker Run loop.
 //
-// Redis/asynq is opt-in via irmik/queue/asynqx so core binaries stay free of
-// asynq and Redis client deps:
+// Redis/asynq is a nested module (irmik/queue/asynqx) so a root `go get` does
+// not download hibiken/asynq:
 //
+//	go get github.com/boracomet/go-irmik/irmik/queue/asynqx
 //	import _ "github.com/boracomet/go-irmik/irmik/queue/asynqx" // registers "asynq"
 //	q, err := queue.New(queue.Options{Driver: "asynq", RedisURL: "redis://localhost:6379/0"})
 //
@@ -78,8 +79,8 @@ func Register(name string, fn DriverFunc) {
 }
 
 // New creates a Queue from Options.
-// Built-in: memory (default). Asynq requires blank-importing irmik/queue/asynqx
-// or calling asynqx.Open directly.
+// Built-in: memory (default). Asynq requires the nested module
+// github.com/boracomet/go-irmik/irmik/queue/asynqx (blank-import or asynqx.Open).
 func New(opts Options) (Queue, error) {
 	switch d := strings.ToLower(strings.TrimSpace(opts.Driver)); d {
 	case "", "memory":

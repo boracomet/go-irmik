@@ -12,7 +12,7 @@ import (
 // Zero values use sensible defaults. Set Skip to disable a header.
 type SecureHeadersConfig struct {
 	// ContentTypeOptions default: nosniff. Empty with ContentTypeOptionsSkip skips.
-	ContentTypeOptions string
+	ContentTypeOptions     string
 	ContentTypeOptionsSkip bool
 
 	// FrameOptions default: DENY. Prefer FrameAncestors for CSP-based framing control.
@@ -50,37 +50,60 @@ func DefaultSecureHeaders() SecureHeadersConfig {
 
 // SecureHeaders sets baseline security response headers.
 func SecureHeaders(cfg SecureHeadersConfig) gin.HandlerFunc {
-	cfg = normalizeSecureHeaders(cfg)
+	return SecureHeadersFunc(func() SecureHeadersConfig { return cfg })
+}
+
+// SecureHeadersFunc re-reads config on each request so a live swap
+// (App.EnableSecureHeaders) replaces headers instead of stacking middleware.
+func SecureHeadersFunc(load func() SecureHeadersConfig) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		h := c.Writer.Header()
-		if !cfg.ContentTypeOptionsSkip && cfg.ContentTypeOptions != "" {
-			h.Set("X-Content-Type-Options", cfg.ContentTypeOptions)
-		}
-		if cfg.FrameAncestors != "" {
-			h.Set("Content-Security-Policy", "frame-ancestors "+cfg.FrameAncestors)
-			if !cfg.FrameOptionsSkip && cfg.FrameOptions != "" {
-				h.Set("X-Frame-Options", cfg.FrameOptions)
-			}
-		} else if !cfg.FrameOptionsSkip && cfg.FrameOptions != "" {
-			h.Set("X-Frame-Options", cfg.FrameOptions)
-		}
-		if !cfg.ReferrerPolicySkip && cfg.ReferrerPolicy != "" {
-			h.Set("Referrer-Policy", cfg.ReferrerPolicy)
-		}
-		if !cfg.PermissionsPolicySkip && cfg.PermissionsPolicy != "" {
-			h.Set("Permissions-Policy", cfg.PermissionsPolicy)
-		}
-		if cfg.HSTSMaxAge > 0 {
-			parts := []string{"max-age=" + strconv.Itoa(cfg.HSTSMaxAge)}
-			if cfg.HSTSIncludeSubdomains {
-				parts = append(parts, "includeSubDomains")
-			}
-			if cfg.HSTSPreload {
-				parts = append(parts, "preload")
-			}
-			h.Set("Strict-Transport-Security", strings.Join(parts, "; "))
-		}
+		writeSecureHeaders(c.Writer.Header(), load())
 		c.Next()
+	}
+}
+
+func writeSecureHeaders(h http.Header, cfg SecureHeadersConfig) {
+	cfg = normalizeSecureHeaders(cfg)
+	if !cfg.ContentTypeOptionsSkip && cfg.ContentTypeOptions != "" {
+		h.Set("X-Content-Type-Options", cfg.ContentTypeOptions)
+	} else {
+		h.Del("X-Content-Type-Options")
+	}
+	if cfg.FrameAncestors != "" {
+		h.Set("Content-Security-Policy", "frame-ancestors "+cfg.FrameAncestors)
+		if !cfg.FrameOptionsSkip && cfg.FrameOptions != "" {
+			h.Set("X-Frame-Options", cfg.FrameOptions)
+		} else {
+			h.Del("X-Frame-Options")
+		}
+	} else if !cfg.FrameOptionsSkip && cfg.FrameOptions != "" {
+		h.Set("X-Frame-Options", cfg.FrameOptions)
+		h.Del("Content-Security-Policy")
+	} else {
+		h.Del("X-Frame-Options")
+		h.Del("Content-Security-Policy")
+	}
+	if !cfg.ReferrerPolicySkip && cfg.ReferrerPolicy != "" {
+		h.Set("Referrer-Policy", cfg.ReferrerPolicy)
+	} else {
+		h.Del("Referrer-Policy")
+	}
+	if !cfg.PermissionsPolicySkip && cfg.PermissionsPolicy != "" {
+		h.Set("Permissions-Policy", cfg.PermissionsPolicy)
+	} else {
+		h.Del("Permissions-Policy")
+	}
+	if cfg.HSTSMaxAge > 0 {
+		parts := []string{"max-age=" + strconv.Itoa(cfg.HSTSMaxAge)}
+		if cfg.HSTSIncludeSubdomains {
+			parts = append(parts, "includeSubDomains")
+		}
+		if cfg.HSTSPreload {
+			parts = append(parts, "preload")
+		}
+		h.Set("Strict-Transport-Security", strings.Join(parts, "; "))
+	} else {
+		h.Del("Strict-Transport-Security")
 	}
 }
 

@@ -10,7 +10,7 @@ Irmik’s data stack is intentionally thin: `database/sql` plus versioned SQL fi
 | [`irmik/db/sqlite`](../irmik/db/sqlite) | Blank-import: registers modernc SQLite |
 | [`irmik/db/postgres`](../irmik/db/postgres) | Blank-import: registers pgx |
 | [`irmik/db/mysql`](../irmik/db/mysql) | Blank-import: registers MySQL |
-| [`irmik/db/gormx`](../irmik/db/gormx) | Optional GORM open helper on an existing `*db.Database` |
+| [`irmik/db/gormx`](../irmik/db/gormx) | Optional GORM open helper (nested module: `go get github.com/boracomet/go-irmik/irmik/db/gormx`) |
 | [`irmik/migrate`](../irmik/migrate) | golang-migrate wrapper: `Up`, `Down`, `Steps`, `Status`, `Create` |
 
 ## Config
@@ -136,11 +136,11 @@ Requires `database.driver` + DSN/URL (except `create`, which only needs `migrate
 
 ```go
 import (
-    "github.com/boracomet/go-irmik/irmik/db/gormx"
+    "github.com/boracomet/go-irmik/irmik/db/gormx" // nested module
     _ "github.com/boracomet/go-irmik/irmik/db/sqlite"
 )
 
 gdb, err := gormx.Open(database)
 ```
 
-GORM is not required by the framework core; use it only when you want an ORM.
+GORM is a nested module; it is not downloaded with the root `go get`. Use it only when you want an ORM.

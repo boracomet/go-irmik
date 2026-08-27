@@ -13,14 +13,14 @@ import (
 )
 
 const (
-	HeaderRequest     = "HX-Request"
-	HeaderRedirect    = "HX-Redirect"
-	HeaderTrigger     = "HX-Trigger"
-	HeaderTriggerAfterSwap = "HX-Trigger-After-Swap"
+	HeaderRequest            = "HX-Request"
+	HeaderRedirect           = "HX-Redirect"
+	HeaderTrigger            = "HX-Trigger"
+	HeaderTriggerAfterSwap   = "HX-Trigger-After-Swap"
 	HeaderTriggerAfterSettle = "HX-Trigger-After-Settle"
-	HeaderRetarget    = "HX-Retarget"
-	HeaderReswap      = "HX-Reswap"
-	HeaderPushURL     = "HX-Push-Url"
+	HeaderRetarget           = "HX-Retarget"
+	HeaderReswap             = "HX-Reswap"
+	HeaderPushURL            = "HX-Push-Url"
 )
 
 // IsRequest reports whether the client sent HX-Request: true.

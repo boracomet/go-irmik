@@ -36,6 +36,30 @@ func TestSecureHeadersDefaults(t *testing.T) {
 	}
 }
 
+func TestSecureHeadersSkip(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	r.Use(middleware.SecureHeaders(middleware.SecureHeadersConfig{
+		FrameAncestors:         "'self'",
+		FrameOptionsSkip:       true,
+		ContentTypeOptionsSkip: true,
+	}))
+	r.GET("/", func(c *gin.Context) { c.Status(http.StatusOK) })
+
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/", nil))
+	h := w.Header()
+	if h.Get("X-Frame-Options") != "" {
+		t.Fatalf("X-Frame-Options=%q", h.Get("X-Frame-Options"))
+	}
+	if h.Get("X-Content-Type-Options") != "" {
+		t.Fatalf("X-Content-Type-Options=%q", h.Get("X-Content-Type-Options"))
+	}
+	if got := h.Get("Content-Security-Policy"); got != "frame-ancestors 'self'" {
+		t.Fatalf("CSP=%q", got)
+	}
+}
+
 func TestSecureHeadersHSTS(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()

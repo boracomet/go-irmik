@@ -99,8 +99,8 @@ app.Engine.GET("/ws/echo", ws.Handler(opts, func(c *ws.Conn) error {
 
 // Chat hub with rooms (?room=lobby)
 hub := ws.NewHub(opts)
-hub.Start()
-app.Engine.GET("/ws/chat", hub.ServeHTTP)
+app.Engine.GET("/ws/chat", hub.ServeHTTP) // starts the loop if Start was not called
+// hub.Start() is still valid
 // hub.Broadcast([]byte("announce"))
 // hub.BroadcastRoom("lobby", []byte("hi"))
 ```

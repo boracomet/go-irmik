@@ -160,8 +160,9 @@ type Hub struct {
 	unregister chan *Client
 	broadcast  chan Envelope
 
-	done chan struct{}
-	once sync.Once
+	done      chan struct{}
+	closeOnce sync.Once
+	startOnce sync.Once
 }
 
 // Envelope is a hub message, optionally scoped to a room.
@@ -170,7 +171,8 @@ type Envelope struct {
 	Data []byte
 }
 
-// NewHub creates a Hub. Call Run in a goroutine (or use Start).
+// NewHub creates a Hub. ServeHTTP starts the event loop if needed;
+// Start and Run remain valid explicit entry points.
 func NewHub(opts Options) *Hub {
 	return &Hub{
 		clients:    make(map[*Client]struct{}),
@@ -184,12 +186,32 @@ func NewHub(opts Options) *Hub {
 }
 
 // Start launches the hub event loop in a background goroutine.
+// Safe to call more than once; ServeHTTP calls it automatically.
 func (h *Hub) Start() {
-	go h.Run()
+	select {
+	case <-h.done:
+		return
+	default:
+	}
+	h.startOnce.Do(func() {
+		go h.runLoop()
+	})
 }
 
 // Run processes register/unregister/broadcast until Close.
+// If the loop is already running (Start or ServeHTTP), Run waits until Close.
 func (h *Hub) Run() {
+	started := false
+	h.startOnce.Do(func() {
+		started = true
+		h.runLoop()
+	})
+	if !started {
+		<-h.done
+	}
+}
+
+func (h *Hub) runLoop() {
 	for {
 		select {
 		case <-h.done:
@@ -207,8 +229,9 @@ func (h *Hub) Run() {
 }
 
 // Close stops the hub loop. Clients should be closed by their handlers.
+// Register and unregister do not hang after Close.
 func (h *Hub) Close() {
-	h.once.Do(func() { close(h.done) })
+	h.closeOnce.Do(func() { close(h.done) })
 }
 
 // Broadcast sends data to every connected client.
@@ -236,7 +259,9 @@ func (h *Hub) Len() int {
 
 // ServeHTTP upgrades the Gin request, registers a Client, and runs pumps.
 // Optional room query (?room=) joins that room on connect.
+// The hub loop is started if Start/Run was not called.
 func (h *Hub) ServeHTTP(c *gin.Context) {
+	h.Start()
 	conn, err := Upgrade(c, h.opts)
 	if err != nil {
 		return
@@ -245,7 +270,12 @@ func (h *Hub) ServeHTTP(c *gin.Context) {
 	if room := strings.TrimSpace(c.Query("room")); room != "" {
 		client.Join(room)
 	}
-	h.register <- client
+	select {
+	case h.register <- client:
+	case <-h.done:
+		_ = conn.Close()
+		return
+	}
 	go client.writePump()
 	client.readPump()
 }
@@ -356,7 +386,11 @@ func (c *Client) Send(data []byte) {
 
 func (c *Client) readPump() {
 	defer func() {
-		c.hub.unregister <- c
+		select {
+		case c.hub.unregister <- c:
+		case <-c.hub.done:
+			c.hub.removeClient(c)
+		}
 	}()
 	opts := c.hub.opts
 	c.conn.SetReadLimit(resolveMaxMsg(opts))

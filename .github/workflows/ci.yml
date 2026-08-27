@@ -13,13 +13,70 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        module:
+          - .
+          - irmik/db/gormx
+          - irmik/grpcx
+          - irmik/observe/otelx
+          - irmik/queue/asynqx
+          - irmik/storage/s3x
+    defaults:
+      run:
+        working-directory: ${{ matrix.module }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v7
         with:
           go-version: "1.25.13"
-      - run: go test ./... -race
+      - name: Test
+        run: go test ./... -race
+        env:
+          GOWORK: "off"
       - uses: golangci/golangci-lint-action@v9
         with:
           version: v2.11.3
-      - run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+          working-directory: ${{ matrix.module }}
+      - name: Vulncheck
+        run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+        env:
+          GOWORK: "off"
+
+  root-graph:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: "1.25.13"
+      - name: Root module must not require nested-catalog heavies
+        env:
+          GOWORK: "off"
+        run: |
+          set -euo pipefail
+          echo "=== go.mod ==="
+          cat go.mod
+          echo "=== direct modules ==="
+          go list -m -f '{{if not .Indirect}}{{.Path}} {{.Version}}{{end}}' all | awk 'NF'
+          echo "=== go mod graph (root edges) ==="
+          go mod graph | grep '^github.com/boracomet/go-irmik ' | sort | tee /tmp/root-edges.txt
+          if grep -E 'github.com/aws/aws-sdk-go-v2|gorm.io/|github.com/hibiken/asynq|google.golang.org/grpc' go.mod; then
+            echo "root go.mod still requires AWS, GORM, grpc, or asynq" >&2
+            exit 1
+          fi
+          # Tiny otel APIs may appear as indirect via golang-migrate tests → docker.
+          # The OTel SDK / OTLP exporter must not.
+          if grep -E 'go.opentelemetry.io/otel(/exporters|/sdk)' go.mod; then
+            echo "root go.mod still requires the OTel SDK or exporter" >&2
+            exit 1
+          fi
+          if go list -m -f '{{if not .Indirect}}{{.Path}}{{end}}' all | grep -E 'aws-sdk-go-v2$|gorm.io/gorm$|hibiken/asynq$|google.golang.org/grpc$|go.opentelemetry.io/otel$'; then
+            echo "root direct require still includes a nested-catalog module" >&2
+            exit 1
+          fi
+          if grep -E ' aws-sdk-go-v2@| gorm.io/| hibiken/asynq@| google.golang.org/grpc@| go.opentelemetry.io/otel@v| go.opentelemetry.io/otel/sdk@| otlptrace' /tmp/root-edges.txt; then
+            echo "root module graph still edges to AWS, GORM, grpc, asynq, or OTel SDK" >&2
+            exit 1
+          fi

@@ -1,0 +1,10 @@
+go 1.25.0
+
+use (
+	.
+	./irmik/db/gormx
+	./irmik/grpcx
+	./irmik/observe/otelx
+	./irmik/queue/asynqx
+	./irmik/storage/s3x
+)

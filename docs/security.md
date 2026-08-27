@@ -15,7 +15,7 @@ Irmik stays lean by default, but admin-facing apps should turn on the security h
 | `Strict-Transport-Security` | set in **production** (`max-age=31536000; includeSubDomains`) |
 | `Content-Security-Policy` | production adds `frame-ancestors 'none'`; script policies remain opt-in so islands can use their own nonce policy |
 
-Customize or replace with CSP framing:
+`EnableSecureHeaders` **replaces** that config; it does not stack a second middleware. `Skip` flags and custom CSP/`FrameAncestors` take effect, and stale defaults from `New` are dropped for skipped headers:
 
 ```go
 app.EnableSecureHeaders(middleware.SecureHeadersConfig{
@@ -70,7 +70,7 @@ Report vulnerabilities privately via [SECURITY.md](../SECURITY.md) — do not pa
 3. Strong `IRMIK_JWT_SECRET` (never ship demo secrets)
 4. HTTPS in production (headers already emit HSTS when `app.env` is not development)
 5. Secure session cookies (`session.secure` / production default)
-6. Blank-import only the DB/cache/session drivers you need ([database.md](database.md)). Unused imports stay out of the binary; `go get` still downloads the module graph.
+6. Blank-import only the DB/cache/session drivers you need ([database.md](database.md)). Nested catalog modules (GORM, S3, OTel, gRPC, asynq) are a separate `go get`; see [catalog.md](catalog.md).
 
 ## Packages
 

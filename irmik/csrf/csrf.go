@@ -14,9 +14,9 @@ import (
 )
 
 const (
-	sessionKey   = "_csrf"
-	contextToken = "irmik_csrf_token"
-	defaultField = "_csrf"
+	sessionKey    = "_csrf"
+	contextToken  = "irmik_csrf_token"
+	defaultField  = "_csrf"
 	defaultHeader = "X-CSRF-Token"
 )
 

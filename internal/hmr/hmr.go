@@ -47,7 +47,7 @@ func Watch(ctx context.Context, opts Options, onChange func(Event)) error {
 	}
 
 	var (
-		timer *time.Timer
+		timer   *time.Timer
 		pending Event
 	)
 	fire := func() {

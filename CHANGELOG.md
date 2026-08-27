@@ -2,7 +2,12 @@
 
 ## Unreleased
 
-Honesty and correctness pass on v0.1.1. Catalog is frozen; no new packages.
+Honesty and correctness pass on v0.1.1. Catalog is frozen; no new packages. Intended for the 0.2.0 cut (do not tag from this change).
+
+- **Nested catalog modules** — `gormx`, `s3x`, `otelx`, `grpcx`, and `asynqx` are separate Go modules so `go get github.com/boracomet/go-irmik` no longer downloads AWS, GORM, the OTel SDK, gRPC, or asynq. Import paths are unchanged; `go get` the nested path. Repo `go.work` keeps local tests working.
+- **WS hub** — `ServeHTTP` starts the event loop if `Start`/`Run` was skipped, so a forgotten `Start()` cannot deadlock the HTTP goroutine. Register/unregister do not hang after `Close`.
+- **`EnableSecureHeaders`** replaces the config mounted in `New` instead of stacking a second middleware, so `Skip` flags actually drop defaults.
+- **golangci-lint** — explicit small v2 set: govet, errcheck, staticcheck, unused, ineffassign, gofmt, goimports.
 
 - **SSR template cache** — `render.Engine` compiles each page and layout once and reuses the parsed tree. `Reload` (and `SetFuncs` / `SetIslandFunc`) drop the cache so disk edits from `irmik dev` still apply.
 - **ISR revalidate** runs the same loader path as the request (cloned GET + params) instead of skipping `*gin.Context` loaders.

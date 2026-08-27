@@ -1,6 +1,7 @@
 package ws_test
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -151,5 +152,84 @@ func TestCheckOriginRejectsEmptyAllowlistOutsideDevelopment(t *testing.T) {
 	u := "ws" + strings.TrimPrefix(srv.URL, "http") + "/ws"
 	if _, _, err := websocket.DefaultDialer.Dial(u, http.Header{"Origin": []string{"http://app.example"}}); err == nil {
 		t.Fatal("expected empty allowlist rejection")
+	}
+}
+
+func TestHubServeHTTPWithoutStart(t *testing.T) {
+	hub := ws.NewHub(ws.Options{Development: true})
+	defer hub.Close()
+
+	r := gin.New()
+	r.GET("/ws", hub.ServeHTTP)
+	srv := httptest.NewServer(r)
+	defer srv.Close()
+
+	done := make(chan error, 1)
+	go func() {
+		u := "ws" + strings.TrimPrefix(srv.URL, "http") + "/ws"
+		conn, _, err := websocket.DefaultDialer.Dial(u, nil)
+		if err != nil {
+			done <- err
+			return
+		}
+		defer func() { _ = conn.Close() }()
+
+		deadline := time.Now().Add(2 * time.Second)
+		for hub.Len() < 1 && time.Now().Before(deadline) {
+			time.Sleep(5 * time.Millisecond)
+		}
+		if hub.Len() < 1 {
+			done <- fmt.Errorf("client not registered")
+			return
+		}
+		hub.Broadcast([]byte("hello-lazy"))
+		_ = conn.SetReadDeadline(time.Now().Add(2 * time.Second))
+		_, got, err := conn.ReadMessage()
+		if err != nil {
+			done <- err
+			return
+		}
+		if string(got) != "hello-lazy" {
+			done <- fmt.Errorf("got %q", got)
+			return
+		}
+		done <- nil
+	}()
+
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatal(err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("ServeHTTP deadlocked without Start()")
+	}
+}
+
+func TestHubRegisterAfterCloseDoesNotDeadlock(t *testing.T) {
+	hub := ws.NewHub(ws.Options{Development: true})
+	hub.Close()
+
+	r := gin.New()
+	r.GET("/ws", hub.ServeHTTP)
+	srv := httptest.NewServer(r)
+	defer srv.Close()
+
+	done := make(chan error, 1)
+	go func() {
+		u := "ws" + strings.TrimPrefix(srv.URL, "http") + "/ws"
+		conn, _, err := websocket.DefaultDialer.Dial(u, nil)
+		if conn != nil {
+			_ = conn.Close()
+		}
+		// Dial may succeed then get closed, or fail; either is fine as long as we return.
+		_ = err
+		done <- nil
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		t.Fatal("ServeHTTP after Close deadlocked")
 	}
 }

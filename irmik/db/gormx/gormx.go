@@ -1,4 +1,5 @@
 // Package gormx provides a thin helper to open GORM on an Irmik *db.Database.
+// Nested module: go get github.com/boracomet/go-irmik/irmik/db/gormx
 // GORM is optional — the rest of Irmik does not require it.
 package gormx
 
@@ -7,7 +8,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/boracomet/go-irmik/irmik/db"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -16,6 +16,8 @@ import (
 	"gorm.io/gorm/logger"
 	"gorm.io/gorm/migrator"
 	"gorm.io/gorm/schema"
+
+	"github.com/boracomet/go-irmik/irmik/db"
 )
 
 // Open wraps an existing irmik/db.Database with GORM.
