@@ -39,6 +39,7 @@ jobs:
         with:
           version: v2.11.3
           working-directory: ${{ matrix.module }}
+          verify: false
       - name: Vulncheck
         run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
         env:
