@@ -6,20 +6,19 @@
 [![Go Reference](https://pkg.go.dev/badge/github.com/boracomet/go-irmik.svg)](https://pkg.go.dev/github.com/boracomet/go-irmik)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-Irmik is a Go framework for Gin applications with server-rendered pages,
-sessions, security helpers, and opt-in packages.
+**Keep Gin. Stop rebuilding the application layer.**
 
-**Core promise:** file-based `app/` routes, SSR/SSG/ISR render modes, and
-security-minded admin helpers (opt-in session/CSRF/RBAC/HTMX).
+`app.Engine` is still `*gin.Engine`. Irmik is file routes, SSR/SSG/ISR, and
+opt-in session/CSRF/RBAC/HTMX admin so you don't rebuild that glue every
+Friday. JSON-only APIs should stay on Gin. The thin core at v0.2.0 is true
+because heavy catalog (GORM, S3, OTel, gRPC, asynq) lives in nested modules —
+this is not a megakit.
 
 It is for:
-- Admin and internal tools that need sessions, CSRF, RBAC, and a JSON API.
+- Admin and internal tools that need sessions, CSRF, RBAC, and HTMX.
 - Server-rendered sites with file-based routes.
-- Teams that want optional database, upload, realtime, and queue packages.
 
-**v0.1.1:** opt-in responsive images (`imagex.Pipeline`, upload variants) and a
-development overlay (badge, errors, live reload with `irmik dev`). See the
-[changelog](CHANGELOG.md).
+Current release: **[v0.2.0](CHANGELOG.md)**.
 
 ## Quick start
 

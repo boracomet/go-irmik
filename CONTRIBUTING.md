@@ -1,6 +1,6 @@
 # Contributing to Irmik
 
-Thanks for helping improve Irmik. The core promise is **file-based routes, render modes, and security-minded admin helpers**, with extra capabilities behind explicit imports — please keep that shape when proposing changes. The catalog is frozen: do not add new packages. Heavy backends (GORM, S3, OTel, gRPC, asynq) are nested modules; do not pull them into the root `go.mod`.
+Thanks for helping improve Irmik. Keep Gin: Irmik is the application layer (**file-based routes, render modes, and opt-in session/CSRF/RBAC/HTMX admin helpers**), not a Gin replacement and not a megakit. Extra capabilities stay behind explicit imports — please keep that shape when proposing changes. The catalog is frozen: do not add new packages. Heavy backends (GORM, S3, OTel, gRPC, asynq) are nested modules; do not pull them into the root `go.mod`. JSON-only APIs belong on Gin.
 
 ## Before you start
 
