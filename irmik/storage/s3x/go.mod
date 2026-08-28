@@ -6,7 +6,7 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.43.5
 	github.com/aws/aws-sdk-go-v2/config v1.32.35
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.107.1
-	github.com/boracomet/go-irmik v0.1.1
+	github.com/boracomet/go-irmik v0.2.0
 )
 
 require (
