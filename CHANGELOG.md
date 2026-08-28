@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Nested catalog modules `gormx`, `s3x`, and `asynqx` now require `github.com/boracomet/go-irmik v0.2.0` (in-repo `replace` unchanged).
+
 ## v0.2.0 - 2026-08-27
 
 Honesty and correctness pass on v0.1.1. Catalog is frozen; no new packages.

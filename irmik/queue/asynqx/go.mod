@@ -4,7 +4,7 @@ go 1.25.0
 
 require (
 	github.com/alicebob/miniredis/v2 v2.38.0
-	github.com/boracomet/go-irmik v0.1.1
+	github.com/boracomet/go-irmik v0.2.0
 	github.com/hibiken/asynq v0.26.0
 )
 
