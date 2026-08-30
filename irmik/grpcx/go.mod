@@ -2,7 +2,7 @@ module github.com/boracomet/go-irmik/irmik/grpcx
 
 go 1.25.0
 
-require google.golang.org/grpc v1.83.0
+require google.golang.org/grpc v1.83.2
 
 require (
 	go.opentelemetry.io/otel v1.45.0 // indirect
